@@ -1,0 +1,7 @@
+Use the helper script to compile mpi against hdf5
+If you run 
+/usr/bin/h5pfc -show
+
+it will show you the command to use to compile the code.
+
+
