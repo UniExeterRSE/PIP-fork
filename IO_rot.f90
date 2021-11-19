@@ -296,10 +296,16 @@ endif
   end subroutine save1param
 
   !
-  ! Porting single 3D-variable save routine from dac to hdf5
+  ! Saving a single variable array (of arbitrary rank) to an hdf5 file
   !
-  subroutine save_3Dparam_hdf5(data, fname_base)
-    double precision, intent(in) :: data(ix,jx,kx,1)
+  subroutine save_param_hdf5(data, varname, rank, dims)
+    !
+    ! This is a refactor of iot_rot.save1param, using the HDF5 library
+    ! e.g. - save_param_hdf5(visc(:,:,:,1), 'viscx', 3, (/ix,jx,kx/))
+    !
+    integer, intent(in) :: rank
+    integer(HSIZE_T), dimension(rank) :: dims
+    double precision, intent(in) :: data(dims)
     character(*), intent(in) :: fname_base
 
     integer :: error                ! Error flag
@@ -307,15 +313,12 @@ endif
     integer(HID_T) :: dset_id       ! Dataset identifier
     integer(HID_T) :: dspace_id     ! Dataspace identifier
 
-    integer :: rank = 3                                    ! Dataset rank
-    integer(HSIZE_T), dimension(3) :: dims = (/ix,jx,kx/)  ! Dataset dimensions
-
     ! Creating file, dataspace & dataset
     CALL h5open_f(error)
-    CALL h5fcreate_f(trim(outdir) // '/' // fname_base // cno // '.h5' , &
+    CALL h5fcreate_f(trim(outdir) // '/' // tno // varname // cno // '.h5' , &
       H5F_ACC_TRUNC_F, file_id, error)
     CALL h5screate_simple_f(rank, dims, dspace_id, error)
-    CALL h5dcreate_f(file_id, fname_base, H5T_NATIVE_DOUBLE, dspace_id, &
+    CALL h5dcreate_f(file_id, varname, H5T_NATIVE_DOUBLE, dspace_id, &
       dset_id, error)
 
     ! write 3D data to file
@@ -328,42 +331,6 @@ endif
     CALL h5close_f(error)
 
   end subroutine save_3Dparam_hdf5
-
-  !
-  ! Porting single 1D-variable save routine from dac to hdf5
-  !
-  subroutine save_1Dparam_hdf5(data, fname_base, npts)
-    integer, intent(in) :: npts                 ! # points in data array
-    double precision, intent(in) :: data(npts)
-    character(*), intent(in) :: fname_base
-
-    integer :: error                ! Error flag
-    integer(HID_T) :: file_id       ! File identifier
-    integer(HID_T) :: dset_id       ! Dataset identifier
-    integer(HID_T) :: dspace_id     ! Dataspace identifier
-
-    integer :: rank = 1                                ! Dataset rank
-    integer(HSIZE_T), dimension(1) :: dims = (/npts/)  ! Dataset dimensions
-
-    ! Creating file, dataspace & dataset
-    CALL h5open_f(error)
-    CALL h5fcreate_f(trim(outdir) // '/' // fname_base // cno // '.h5' , &
-      H5F_ACC_TRUNC_F, file_id, error)
-    CALL h5screate_simple_f(rank, dims, dspace_id, error)
-    CALL h5dcreate_f(file_id, fname_base, H5T_NATIVE_DOUBLE, dspace_id, &
-      dset_id, error)
-
-    ! write 3D data to file
-    CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, error)
-
-    ! Closing connections in reverse order
-    CALL h5dclose_f(dset_id, error)
-    CALL h5sclose_f(dspace_id, error)
-    CALL h5fclose_f(file_id, error)
-    CALL h5close_f(error)
-
-  end subroutine save_1Dparam_hdf5
-
 
 
   subroutine set_initial_out
