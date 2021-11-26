@@ -30,25 +30,24 @@ FC = mpif90 -O2
 #FC = mpif90-mpich-mp
 
 
-FFLAGS = -O2
-#FFLAGS = 
-LDFLAGS =
-LIB_DIR=.
-#DEBUG = -g -pg 
+#FFLAGS = -O2
+FFLAGS = -I/usr/include/hdf5/serial
+LDFLAGS = -lhdf5_fortran.a
+LIB_DIR=. -L/usr/lib/x86_64-linux-gnu/hdf5/serial
+#DEBUG = -g -pg
 #DEBUG= -ffpe-trap=invalid,zero,overflow -fbacktrace -fbounds-check -g
 #DEBUG= -ffpe-trap=invalid,overflow -fbacktrace -fbounds-check -g
 #DEBUG= -fbacktrace -fbounds-check -g
 #DEBUG= -fbacktrace -g
-DEBUG= 
+DEBUG=
 
 .SUFFIXES : .o .f90
 .f90.o:
-	${FC} ${FFLAGS} ${DEBUG} -c $< 
+	${FC} ${FFLAGS} ${DEBUG} -c $<
 
 
 ${TARGET} : ${OBJECTS}
-	${FC} ${DEBUG} ${LDFLAGS} -o $@ ${OBJECTS} \
-	-L$(LIB_DIR) 
+	${FC} ${DEBUG} -L$(LIB_DIR) ${LDFLAGS} -o $@ ${OBJECTS}
 #	rm ${OBJECTS} ${MOD_FILES}
 clean:
 	rm ${TARGET} ${OBJECTS} ${MOD_FILES}
@@ -57,4 +56,4 @@ datatidy:
 	rm Data/*
 
 print_vars:
-	@echo "FC='${FC}'" 
+	@echo "FC='${FC}'"
