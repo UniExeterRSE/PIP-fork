@@ -305,8 +305,8 @@ endif
     !
     integer, intent(in) :: rank
     integer(HSIZE_T), dimension(rank) :: dims
-    double precision, intent(in) :: data(dims)
-    character(*), intent(in) :: fname_base
+    double precision, dimension(*) :: data
+    character(*), intent(in) :: varname
 
     integer :: error                ! Error flag
     integer(HID_T) :: file_id       ! File identifier
@@ -330,7 +330,7 @@ endif
     CALL h5fclose_f(file_id, error)
     CALL h5close_f(error)
 
-  end subroutine save_3Dparam_hdf5
+  end subroutine save_param_hdf5
 
 
   subroutine set_initial_out
