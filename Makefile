@@ -25,15 +25,16 @@ MOD_FILES = util_rot.mod globalvar.mod parameters.mod \
 	boundary_rot.mod solver_rot.mod matrix_rot.mod initial_rot.mod  procedures.mod
 
 #FC = gfortran
-FC = mpif90 -O2
+#FC = mpif90 -O2
+FC = h5pfc
 #FC = mpif90-mpich-mp -O2
 #FC = mpif90-mpich-mp
 
 
-#FFLAGS = -O2
-FFLAGS = -I/usr/include/hdf5/serial
-LDFLAGS = -lhdf5_fortran.a
-LIB_DIR=. -L/usr/lib/x86_64-linux-gnu/hdf5/serial
+FFLAGS = -O2
+#FFLAGS = -I/usr/include/hdf5/serial
+#LDFLAGS = -lhdf5_fortran.a
+LIB_DIR=.
 #DEBUG = -g -pg
 #DEBUG= -ffpe-trap=invalid,zero,overflow -fbacktrace -fbounds-check -g
 #DEBUG= -ffpe-trap=invalid,overflow -fbacktrace -fbounds-check -g
