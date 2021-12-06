@@ -265,6 +265,7 @@ endif
       endif
        if((flag_visc.ge.1).and.(vs_sav.eq.0)) then
           call save1param(visc(:,:,:,1),tno//"viscx.dac.",1)
+          call save_param_hdf5(visc(:,:,:,1), "viscx", 3, (/ix,jx,kx/))
           call save1param(visc(:,:,:,2),tno//"viscy.dac.",1)
           call save1param(visc(:,:,:,3),tno//"viscz.dac.",1)
        endif
