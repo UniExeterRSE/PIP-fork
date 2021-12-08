@@ -307,7 +307,7 @@ endif
     ! e.g. - save_param_hdf5(visc(:,:,:,1), 'viscx', 3, (/ix,jx,kx/))
     !
     integer, intent(in) :: rank
-    integer, dimension(rank) :: dims
+    integer(SIZE_T), dimension(rank) :: dims
     double precision, dimension(*) :: data
     character(*), intent(in) :: varname
 
