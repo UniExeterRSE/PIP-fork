@@ -260,7 +260,6 @@ endif
       endif
       ! include type=4 ionization and recombination results
       if(flag_ir.eq.4) then
-        !print*,Nexcite(1,1,1,:)
         call save1param(Nexcite(:,:,:,1),tno//'nexcite1.dac.',1)
         call save1param(Nexcite(:,:,:,2),tno//'nexcite2.dac.',1)
         call save1param(Nexcite(:,:,:,3),tno//'nexcite3.dac.',1)
@@ -268,22 +267,26 @@ endif
         call save1param(Nexcite(:,:,:,5),tno//'nexcite5.dac.',1)
         call save1param(Nexcite(:,:,:,6),tno//'nexcite6.dac.',1)
       endif
-       if((flag_visc.ge.1).and.(vs_sav.eq.0)) then
-          call save1param(visc(:,:,:,1),tno//"viscx.dac.",1)
-          call save1param(visc(:,:,:,2),tno//"viscy.dac.",1)
-          call save1param(visc(:,:,:,3),tno//"viscz.dac.",1)
-       endif
+      ! include viscosity results
+      if((flag_visc.ge.1).and.(vs_sav.eq.0)) then
+        call save1param(visc(:,:,:,1),tno//"viscx.dac.",1)
+        call save1param(visc(:,:,:,2),tno//"viscy.dac.",1)
+        call save1param(visc(:,:,:,3),tno//"viscz.dac.",1)
+      endif
     endif
+
     if(flag_pip.eq.1 .or.flag_mhd.eq.0) then
-       do i=1,nvar_h
-          call save1param(U_h(:,:,:,i),tno//trim(file_h(i)),1)
-       enddo
+      do i=1,nvar_h
+        call save1param(U_h(:,:,:,i),tno//trim(file_h(i)),1)
+      enddo
     endif
+    ! Save divergence of B-field values (currently used in testing)
     if(flag_divb.eq.1 .and. flag_mhd.eq.1 .and. ps_sav .eq.0) then
        call save1param(U_m(:,:,:,9),tno//trim(file_m(9)),1)
     endif
 
   end subroutine save_varfiles
+
 
   subroutine save1param(q,name,nvar)
     integer,intent(in)::nvar
