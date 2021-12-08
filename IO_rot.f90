@@ -245,6 +245,9 @@ endif
     if(flag_mhd.eq.1) then
        do i=1,nvar_m
           call save1param(U_m(:,:,:,i),tno//trim(file_m(i)),1)
+          if(i.eq.1) then
+            call save_param_hdf5(U_m(:,:,:,1), "U_m", 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+          endif
        enddo
        if(flag_resi.ge.2) then
           if(et_sav.eq.0) call save1param(eta,tno//"et.dac.",1)
@@ -265,7 +268,6 @@ endif
       endif
        if((flag_visc.ge.1).and.(vs_sav.eq.0)) then
           call save1param(visc(:,:,:,1),tno//"viscx.dac.",1)
-          call save_param_hdf5(visc(:,:,:,1), "viscx", 3, (/ix,jx,kx/))
           call save1param(visc(:,:,:,2),tno//"viscy.dac.",1)
           call save1param(visc(:,:,:,3),tno//"viscz.dac.",1)
        endif
