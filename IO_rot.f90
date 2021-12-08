@@ -230,33 +230,35 @@ endif
     close(mf_t)
   end subroutine epilogue
 
-!  subroutine save_varfiles(t)
+
   subroutine save_varfiles(n_out)
     integer n_out
     integer i
-!    double precision, intent(in) :: t
-
 
     if(n_out.ne.0) then
        call def_varfiles(1)
     endif
     write(mf_t) time
     close(mf_t)
+
+    ! save values for magnetohydrodyanmical simulation results
     if(flag_mhd.eq.1) then
-       do i=1,nvar_m
-          call save1param(U_m(:,:,:,i),tno//trim(file_m(i)),1)
-          if(i.eq.1) then
-            call save_param_hdf5(U_m(:,:,:,1), "U_m", 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
-          endif
-       enddo
-       if(flag_resi.ge.2) then
-          if(et_sav.eq.0) call save1param(eta,tno//"et.dac.",1)
-       endif
-       if(flag_ir.ge.1) then
-!	print*,gm_ion
-          if(ion_sav.eq.0) call save1param(Gm_ion,tno//'ion.dac.',1)
-          if(rec_sav.eq.0) call save1param(Gm_rec,tno//'rec.dac.',1)
-       endif
+      do i=1,nvar_m
+        call save1param(U_m(:,:,:,i),tno//trim(file_m(i)),1)
+        if(i.eq.1) then
+          call save_param_hdf5(U_m(:,:,:,1), "U_m", 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+        endif
+      enddo
+      ! include resistivity results
+      if(flag_resi.ge.2) then
+        if(et_sav.eq.0) call save1param(eta,tno//"et.dac.",1)
+      endif
+      ! include type=1 ionization and recombination results
+      if(flag_ir.ge.1) then
+        if(ion_sav.eq.0) call save1param(Gm_ion,tno//'ion.dac.',1)
+        if(rec_sav.eq.0) call save1param(Gm_rec,tno//'rec.dac.',1)
+      endif
+      ! include type=4 ionization and recombination results
       if(flag_ir.eq.4) then
         !print*,Nexcite(1,1,1,:)
         call save1param(Nexcite(:,:,:,1),tno//'nexcite1.dac.',1)
