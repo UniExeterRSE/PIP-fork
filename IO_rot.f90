@@ -108,6 +108,9 @@ endif
        write(mf_dx) dx
        close(mf_x)
        close(mf_dx)
+       ! now save as hdf5
+       call save_param_hdf5(x, "x.dac." // tmp_id, 1, (/INT(ix, KIND=8)/))
+       call save_param_hdf5(dx, "dx.dac." // tmp_id, 1, (/INT(ix, KIND=8)/))
     endif
 
     if(ndim.ge.2) then
@@ -340,11 +343,16 @@ endif
     integer(HID_T) :: file_id       ! File identifier
     integer(HID_T) :: dset_id       ! Dataset identifier
     integer(HID_T) :: dspace_id     ! Dataspace identifier
+    character(len=40) :: fpath      ! Relative path for output file
 
     ! Creating file, dataspace & dataset
     CALL h5open_f(error)
-    CALL h5fcreate_f(trim(outdir) // '/' // tno // varname // cno // '.h5' , &
-      H5F_ACC_TRUNC_F, file_id, error)
+    if (rank.eq.3) then
+      fpath = trim(outdir) // '/' // tno // varname // cno // '.h5'
+    else if(rank.eq.1) then
+      fpath = trim(outdir) // varname // '.h5'
+    end if
+    CALL h5fcreate_f(trim(fpath) , H5F_ACC_TRUNC_F, file_id, error)
     CALL h5screate_simple_f(rank, dims, dspace_id, error)
     CALL h5dcreate_f(file_id, varname, H5T_NATIVE_DOUBLE, dspace_id, &
       dset_id, error)
