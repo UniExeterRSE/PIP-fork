@@ -357,13 +357,14 @@ endif
     integer(HID_T) :: dspace_id     ! Dataspace identifier
     character(len=40) :: fpath      ! Relative path for output file
 
-    ! Creating file, dataspace & dataset
-    CALL h5open_f(error)
+    ! Define file path based on rank type
     if (rank.eq.3) then
       fpath = trim(outdir) // '/' // tno // varname // cno // '.h5'
     else if(rank.eq.1) then
       fpath = trim(outdir) // varname // '.h5'
     end if
+    ! Creating file, dataspace & dataset
+    CALL h5open_f(error)
     CALL h5fcreate_f(trim(fpath) , H5F_ACC_TRUNC_F, file_id, error)
     CALL h5screate_simple_f(rank, dims, dspace_id, error)
     CALL h5dcreate_f(file_id, varname, H5T_NATIVE_DOUBLE, dspace_id, &
