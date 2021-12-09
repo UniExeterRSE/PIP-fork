@@ -254,24 +254,28 @@ endif
     if(flag_mhd.eq.1) then
       do i=1,nvar_m
         call save1param(U_m(:,:,:,i),tno//trim(file_m(i)),1)
-        call save_param_hdf5(U_m(:,:,:,i), trim(file_m(i)), 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+        call save_param_hdf5(U_m(:,:,:,i), trim(file_m(i)), 3, &
+          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
       enddo
       ! include resistivity results
       if(flag_resi.ge.2) then
         if(et_sav.eq.0) then
           call save1param(eta,tno//"et.dac.",1)
-          call save_param_hdf5(eta, "et.dac.", 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+          call save_param_hdf5(eta, "et.dac.", 3, &
+            (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
         endif
       endif
       ! include type=1 ionization and recombination results
       if(flag_ir.ge.1) then
         if(ion_sav.eq.0) then
           call save1param(Gm_ion,tno//'ion.dac.',1)
-          call save_param_hdf5(Gm_ion, "ion.dac.", 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+          call save_param_hdf5(Gm_ion, "ion.dac.", 3, &
+            (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
         endif
         if(rec_sav.eq.0) then
           call save1param(Gm_rec,tno//'rec.dac.',1)
-          call save_param_hdf5(Gm_rec, "rec.dac.", 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+          call save_param_hdf5(Gm_rec, "rec.dac.", 3, &
+            (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
         endif
       endif
       ! include type=4 ionization and recombination results
@@ -305,13 +309,15 @@ endif
     if(flag_pip.eq.1 .or.flag_mhd.eq.0) then
       do i=1,nvar_h
         call save1param(U_h(:,:,:,i),tno//trim(file_h(i)),1)
-        call save_param_hdf5(U_h(:,:,:,i), trim(file_h(i)), 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+        call save_param_hdf5(U_h(:,:,:,i), trim(file_h(i)), 3, &
+          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
       enddo
     endif
     ! Save divergence of B-field values (currently used in testing)
     if(flag_divb.eq.1 .and. flag_mhd.eq.1 .and. ps_sav .eq.0) then
-       call save1param(U_m(:,:,:,9),tno//trim(file_m(9)),1)
-       call save_param_hdf5(U_m(:,:,:,9), trim(file_m(9)), 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+      call save1param(U_m(:,:,:,9),tno//trim(file_m(9)),1)
+      call save_param_hdf5(U_m(:,:,:,9), trim(file_m(9)), 3, &
+        (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
     endif
 
   end subroutine save_varfiles
