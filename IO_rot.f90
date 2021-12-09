@@ -101,40 +101,46 @@ endif
     character*4 tmp_id
 
     if(flag_mpi.eq.0 .or.(mpi_pos(2).eq.0.and.mpi_pos(3).eq.0)) then
-       write(tmp_id,"(i4.4)")mpi_pos(1)
-       call dacdef1d(mf_x,trim(outdir) // 'x.dac.'//tmp_id,6,ix)
-       write(mf_x) x
-       call dacdef1d(mf_dx,trim(outdir) // 'dx.dac.'//tmp_id,6,ix)
-       write(mf_dx) dx
-       close(mf_x)
-       close(mf_dx)
-       ! now save as hdf5
-       call save_param_hdf5(x, "x.dac." // tmp_id, 1, (/INT(ix, KIND=8)/))
-       call save_param_hdf5(dx, "dx.dac." // tmp_id, 1, (/INT(ix, KIND=8)/))
+      write(tmp_id,"(i4.4)")mpi_pos(1)
+      call dacdef1d(mf_x,trim(outdir) // 'x.dac.'//tmp_id,6,ix)
+      write(mf_x) x
+      call dacdef1d(mf_dx,trim(outdir) // 'dx.dac.'//tmp_id,6,ix)
+      write(mf_dx) dx
+      close(mf_x)
+      close(mf_dx)
+      ! now save as hdf5
+      call save_param_hdf5(x, "x.dac." // tmp_id, 1, (/INT(ix, KIND=8)/))
+      call save_param_hdf5(dx, "dx.dac." // tmp_id, 1, (/INT(ix, KIND=8)/))
     endif
 
     if(ndim.ge.2) then
-       if(flag_mpi.eq.0 .or.(mpi_pos(1).eq.0.and.mpi_pos(3).eq.0)) then
-          write(tmp_id,"(i4.4)")mpi_pos(2)
-          call dacdef1d(mf_y,trim(outdir) // 'y.dac.'//tmp_id,6,jx)
-          write(mf_y) y
-          call dacdef1d(mf_dy,trim(outdir) // 'dy.dac.'//tmp_id,6,jx)
-          write(mf_dy) dy
-          close(mf_y)
-          close(mf_dy)
+      if(flag_mpi.eq.0 .or.(mpi_pos(1).eq.0.and.mpi_pos(3).eq.0)) then
+        write(tmp_id,"(i4.4)")mpi_pos(2)
+        call dacdef1d(mf_y,trim(outdir) // 'y.dac.'//tmp_id,6,jx)
+        write(mf_y) y
+        call dacdef1d(mf_dy,trim(outdir) // 'dy.dac.'//tmp_id,6,jx)
+        write(mf_dy) dy
+        close(mf_y)
+        close(mf_dy)
+        ! now save as hdf5
+        call save_param_hdf5(y, "y.dac." // tmp_id, 1, (/INT(jx, KIND=8)/))
+        call save_param_hdf5(dy, "dy.dac." // tmp_id, 1, (/INT(jx, KIND=8)/))
+      endif
 
-       endif
-       if(ndim.ge.3) then
-          if(flag_mpi.eq.0 .or.(mpi_pos(1).eq.0.and.mpi_pos(2).eq.0)) then
-             write(tmp_id,"(i4.4)")mpi_pos(3)
-             call dacdef1d(mf_z,trim(outdir) // 'z.dac.'//tmp_id,6,kx)
-             write(mf_z) z
-             call dacdef1d(mf_dz,trim(outdir) // 'dz.dac.'//tmp_id,6,kx)
-             write(mf_dz) dz
-             close(mf_z)
-             close(mf_dz)
-          endif
-       endif
+      if(ndim.ge.3) then
+        if(flag_mpi.eq.0 .or.(mpi_pos(1).eq.0.and.mpi_pos(2).eq.0)) then
+          write(tmp_id,"(i4.4)")mpi_pos(3)
+          call dacdef1d(mf_z,trim(outdir) // 'z.dac.'//tmp_id,6,kx)
+          write(mf_z) z
+          call dacdef1d(mf_dz,trim(outdir) // 'dz.dac.'//tmp_id,6,kx)
+          write(mf_dz) dz
+          close(mf_z)
+          close(mf_dz)
+          ! now save as hdf5
+          call save_param_hdf5(z, "z.dac." // tmp_id, 1, (/INT(kx, KIND=8)/))
+          call save_param_hdf5(dz, "dz.dac." // tmp_id, 1, (/INT(kx, KIND=8)/))
+        endif
+      endif
     endif
 
   end subroutine save_coordinates
