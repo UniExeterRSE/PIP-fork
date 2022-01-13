@@ -1,2 +1,4 @@
 # stuff for git NOT to track
 Data/
+*.[oa]
+*.mod
