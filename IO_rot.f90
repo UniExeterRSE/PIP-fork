@@ -219,37 +219,6 @@ contains
   end subroutine def_varfiles
 
 
-!   subroutine def_varfiles(append)
-!     integer,intent(in)::append
-!     integer i
-
-!     if(flag_mpi.eq.0 .or.my_rank.eq.0)      &
-!          call dacdef0s(mf_t,trim(outdir) // '/t.dac.'//cno,6,append)
-!     if(flag_mhd.eq.1) then
-! !       do i=1,nvar_m
-! !       print *,"OK",my_rank,file_m(1)//cno
-!        do i=1,8
-!           call dacdef3s(mf_m(i,1),trim(outdir)//trim(file_m(i))//cno,6,append)
-!        enddo
-!        if(flag_resi.ge.2) then
-!           call dacdef3s(77,trim(outdir)//'/et.dac.'//cno,6,append)
-!        endif
-!        if(flag_ir.ge.2) then
-!           call dacdef3s(78,trim(outdir)//'/ion.dac.'//cno,6,append)
-!           call dacdef3s(79,trim(outdir)//'/rec.dac.'//cno,6,append)
-! !          call dacdef3s(Gm_ion,'ion.dac.',1)
-! !          call dacdef3s(Gm_rec,'rec.dac.',1)
-!        endif
-
-!     endif
-!     if(flag_pip.eq.1.or.flag_mhd.eq.0) then
-!        do i=1,nvar_h
-!           call dacdef3s(mf_h(i,1),trim(outdir) // trim(file_h(i))//cno,6,append)
-!        enddo
-!     endif
-
-!   end subroutine def_varfiles
-
  !close file units
   subroutine epilogue
     integer i
