@@ -151,37 +151,71 @@ endif
 
     write(tno,"(i4.4)")nout
 
-
     if(flag_pip.eq.1.or.flag_amb.eq.1) then
-!print*,'ac_sav',ac_sav
-!print*,'xi_sav',xi_sav
-       if(ac_sav.eq.0) call save1param(ac,tno//'ac.dac.',1)
-       if(xi_sav.eq.0) call save1param(xi_n,tno//'xi.dac.',1)
+      if(ac_sav.eq.0) then
+        call save1param(ac,tno//'ac.dac.',1)
+        call save_param_hdf5(ac, "ac.dac.", 3, &
+          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+      endif
+      if(xi_sav.eq.0) then
+        call save1param(xi_n,tno//'xi.dac.',1)
+        call save_param_hdf5(xi_n, "xi.dac.", 3, &
+          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+      endif
     endif
     if(flag_pip.eq.1.and.flag_ir.eq.1) then
-       if(ion_sav.eq.0) call save1param(Gm_ion,tno//'ion.dac.',1)
-       if(rec_sav.eq.0) call save1param(Gm_rec,tno//'rec.dac.',1)
+      if(ion_sav.eq.0) then
+        call save1param(Gm_ion,tno//'ion.dac.',1)
+        call save_param_hdf5(Gm_ion, "ion.dac.", 3, &
+          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+      endif
+      if(rec_sav.eq.0) then
+        call save1param(Gm_rec,tno//'rec.dac.',1)
+        call save_param_hdf5(Gm_rec, "rec.dac.", 3, &
+          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+      endif
     endif
     if(flag_mhd.eq.1.and.flag_resi.eq.1) then
-       if(et_sav.eq.0) call save1param(eta,tno//'et.dac.',1)
+      if(et_sav.eq.0) then
+        call save1param(eta,tno//'et.dac.',1)
+        call save_param_hdf5(eta, "et.dac.", 3, &
+          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+      endif
     endif
     if(flag_col.eq.1) then
-       if(col_sav.eq.0) call save1param(ac,tno//'col.dac.',1)
+      if(col_sav.eq.0) then
+        call save1param(ac,tno//'col.dac.',1)
+        call save_param_hdf5(ac, "col.dac.", 3, &
+          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+      endif
     endif
 
     if(flag_grav.eq.1) then
-       if(gr_sav.eq.0) call save1param(gra,tno//'gr.dac.',3)
+      if(gr_sav.eq.0) then
+        call save1param(gra,tno//'gr.dac.',3)
+        call save_param_hdf5(gra, "gr.dac.", 3, &
+          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+      endif
     endif
     if(flag_visc.eq.1) then
-       if(vs_sav.eq.0) call save1param(mu,tno//'vs.dac.',1)
+      if(vs_sav.eq.0) then
+        call save1param(mu,tno//'vs.dac.',1)
+        call save_param_hdf5(mu, "vs.dac.", 3, &
+          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+      endif
     endif
     if(flag_pip.eq.1.and.flag_ir_type.eq.0.and.flag_IR.ne.0) then
-       if(heat_sav.eq.0) call save1param(arb_heat,tno//'aheat.dac.',1)
+      if(heat_sav.eq.0) then
+        call save1param(arb_heat,tno//'aheat.dac.',1)
+        call save_param_hdf5(arb_heat, "aheat.dac.", 3, &
+          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+      endif
     endif
 
 
-    if(flag_mpi.eq.0 .or.my_rank.eq.0)      &
-         call dacdef0s(mf_t,trim(outdir) // 't.dac.'//cno,6,append)
+    if(flag_mpi.eq.0 .or.my_rank.eq.0) then
+      call dacdef0s(mf_t,trim(outdir) // 't.dac.'//cno,6,append)
+    endif
 
   end subroutine def_varfiles
 
