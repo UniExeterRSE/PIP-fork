@@ -26,11 +26,10 @@ for i in np.arange(31):
             with h5py.File(fn_h5, "r") as new:
                 # there is only one key in each current sim file
                 only_key = list(new.keys())[0]
-                #pdb.set_trace()
 
                 new_data = np.array(new[only_key]).flatten()
                 # Compare element by element
-                comp = np.allclose(ref_data, new_data)
-
-                if not comp:
-                    print(f"{param} parameter array in {i} time step has mismatches")
+                comp = np.isclose(ref_data, new_data)
+                if not comp.all():
+                    print(f"{param} parameter array in time step #{i} has mismatches")
+                    #pdb.set_trace()
