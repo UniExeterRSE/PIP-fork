@@ -146,7 +146,6 @@ contains
 
   subroutine def_varfiles(append)
     integer,intent(in)::append
-    integer i
 
     write(tno,"(i4.4)")nout
 
@@ -162,6 +161,7 @@ contains
           (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
       endif
     endif
+    ! include type=1 ionization and recombination results
     if(flag_pip.eq.1.and.flag_ir.eq.1) then
       if(ion_sav.eq.0) then
         call save1param(Gm_ion,tno//'ion.dac.',1)
@@ -174,35 +174,29 @@ contains
           (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
       endif
     endif
-    if(flag_mhd.eq.1.and.flag_resi.eq.1) then
-      if(et_sav.eq.0) then
-        call save1param(eta,tno//'et.dac.',1)
-        call save_param_hdf5(eta, "et.dac.", 3, &
-          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
-      endif
+    ! include resistivity results
+    if(flag_mhd.eq.1.and.flag_resi.eq.1 .and. et_sav.eq.0) then
+      call save1param(eta,tno//'et.dac.',1)
+      call save_param_hdf5(eta, "et.dac.", 3, &
+        (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
     endif
-    if(flag_col.eq.1) then
-      if(col_sav.eq.0) then
-        call save1param(ac,tno//'col.dac.',1)
-        call save_param_hdf5(ac, "col.dac.", 3, &
-          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
-      endif
+    
+    if(flag_col.eq.1 .and. col_sav.eq.0) then
+      call save1param(ac,tno//'col.dac.',1)
+      call save_param_hdf5(ac, "col.dac.", 3, &
+        (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+    endif
+    if(flag_grav.eq.1 .and. gr_sav.eq.0) then
+      call save1param(gra,tno//'gr.dac.',3)
+      call save_param_hdf5(gra, "gr.dac.", 3, &
+        (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+    endif
+    if(flag_visc.eq.1 .and. vs_sav.eq.0) then
+      call save1param(mu,tno//'vs.dac.',1)
+      call save_param_hdf5(mu, "vs.dac.", 3, &
+        (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
     endif
 
-    if(flag_grav.eq.1) then
-      if(gr_sav.eq.0) then
-        call save1param(gra,tno//'gr.dac.',3)
-        call save_param_hdf5(gra, "gr.dac.", 3, &
-          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
-      endif
-    endif
-    if(flag_visc.eq.1) then
-      if(vs_sav.eq.0) then
-        call save1param(mu,tno//'vs.dac.',1)
-        call save_param_hdf5(mu, "vs.dac.", 3, &
-          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
-      endif
-    endif
     if(flag_pip.eq.1.and.flag_ir_type.eq.0.and.flag_IR.ne.0) then
       if(heat_sav.eq.0) then
         call save1param(arb_heat,tno//'aheat.dac.',1)
@@ -210,7 +204,6 @@ contains
           (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
       endif
     endif
-
 
     if(flag_mpi.eq.0 .or.my_rank.eq.0) then
       call dacdef0s(mf_t,trim(outdir) // 't.dac.'//cno,6,append)
@@ -267,7 +260,7 @@ contains
             (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
         endif
       endif
-      ! include type=1 ionization and recombination results
+      ! include type>=1 ionization and recombination results
       if(flag_ir.ge.1) then
         if(ion_sav.eq.0) then
           call save1param(Gm_ion,tno//'ion.dac.',1)
