@@ -117,8 +117,8 @@ contains
       close(mf_x)
       close(mf_dx)
       ! now save as hdf5
-      call save_param_hdf5(x, "x.dac." // tmp_id, 1, (/INT(ix, KIND=8)/))
-      call save_param_hdf5(dx, "dx.dac." // tmp_id, 1, (/INT(ix, KIND=8)/))
+      call save_param_hdf5(x, "x.dac." // tmp_id, 1)
+      call save_param_hdf5(dx, "dx.dac." // tmp_id, 1)
     endif
 
     if(ndim.ge.2) then
@@ -131,8 +131,8 @@ contains
         close(mf_y)
         close(mf_dy)
         ! now save as hdf5
-        call save_param_hdf5(y, "y.dac." // tmp_id, 1, (/INT(jx, KIND=8)/))
-        call save_param_hdf5(dy, "dy.dac." // tmp_id, 1, (/INT(jx, KIND=8)/))
+        call save_param_hdf5(y, "y.dac." // tmp_id, 1)
+        call save_param_hdf5(dy, "dy.dac." // tmp_id, 1)
       endif
 
       if(ndim.ge.3) then
@@ -145,8 +145,8 @@ contains
           close(mf_z)
           close(mf_dz)
           ! now save as hdf5
-          call save_param_hdf5(z, "z.dac." // tmp_id, 1, (/INT(kx, KIND=8)/))
-          call save_param_hdf5(dz, "dz.dac." // tmp_id, 1, (/INT(kx, KIND=8)/))
+          call save_param_hdf5(z, "z.dac." // tmp_id, 1)
+          call save_param_hdf5(dz, "dz.dac." // tmp_id, 1)
         endif
       endif
     endif
@@ -162,56 +162,47 @@ contains
     if(flag_pip.eq.1.or.flag_amb.eq.1) then
       if(ac_sav.eq.0) then
         call save1param(ac,tno//'ac.dac.',1)
-        call save_param_hdf5(ac, "ac.dac.", 3, &
-          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+        call save_param_hdf5(ac, "ac.dac.", 3)
       endif
       if(xi_sav.eq.0) then
         call save1param(xi_n,tno//'xi.dac.',1)
-        call save_param_hdf5(xi_n, "xi.dac.", 3, &
-          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+        call save_param_hdf5(xi_n, "xi.dac.", 3)
       endif
     endif
     ! include type=1 ionization and recombination results
     if(flag_pip.eq.1.and.flag_ir.eq.1) then
       if(ion_sav.eq.0) then
         call save1param(Gm_ion,tno//'ion.dac.',1)
-        call save_param_hdf5(Gm_ion, "ion.dac.", 3, &
-          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+        call save_param_hdf5(Gm_ion, "ion.dac.", 3)
       endif
       if(rec_sav.eq.0) then
         call save1param(Gm_rec,tno//'rec.dac.',1)
-        call save_param_hdf5(Gm_rec, "rec.dac.", 3, &
-          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+        call save_param_hdf5(Gm_rec, "rec.dac.", 3)
       endif
     endif
     ! include resistivity results
     if(flag_mhd.eq.1.and.flag_resi.eq.1 .and. et_sav.eq.0) then
       call save1param(eta,tno//'et.dac.',1)
-      call save_param_hdf5(eta, "et.dac.", 3, &
-        (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+      call save_param_hdf5(eta, "et.dac.", 3)
     endif
 
     if(flag_col.eq.1 .and. col_sav.eq.0) then
       call save1param(ac,tno//'col.dac.',1)
-      call save_param_hdf5(ac, "col.dac.", 3, &
-        (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+      call save_param_hdf5(ac, "col.dac.", 3)
     endif
     if(flag_grav.eq.1 .and. gr_sav.eq.0) then
       call save1param(gra,tno//'gr.dac.',3)
-      call save_param_hdf5(gra, "gr.dac.", 3, &
-        (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+      call save_param_hdf5(gra, "gr.dac.", 3)
     endif
     if(flag_visc.eq.1 .and. vs_sav.eq.0) then
       call save1param(mu,tno//'vs.dac.',1)
-      call save_param_hdf5(mu, "vs.dac.", 3, &
-        (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+      call save_param_hdf5(mu, "vs.dac.", 3)
     endif
 
     if(flag_pip.eq.1.and.flag_ir_type.eq.0.and.flag_IR.ne.0) then
       if(heat_sav.eq.0) then
         call save1param(arb_heat,tno//'aheat.dac.',1)
-        call save_param_hdf5(arb_heat, "aheat.dac.", 3, &
-          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+        call save_param_hdf5(arb_heat, "aheat.dac.", 3)
       endif
     endif
 
@@ -260,28 +251,24 @@ contains
     if(flag_mhd.eq.1) then
       do i=1,nvar_m
         call save1param(U_m(:,:,:,i),tno//trim(file_m(i)),1)
-        call save_param_hdf5(U_m(:,:,:,i), trim(file_m(i)), 3, &
-          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+        call save_param_hdf5(U_m(:,:,:,i), trim(file_m(i)), 3)
       enddo
       ! include resistivity results
       if(flag_resi.ge.2) then
         if(et_sav.eq.0) then
           call save1param(eta,tno//"et.dac.",1)
-          call save_param_hdf5(eta, "et.dac.", 3, &
-            (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+          call save_param_hdf5(eta, "et.dac.", 3)
         endif
       endif
       ! include type>=1 ionization and recombination results
       if(flag_ir.ge.1) then
         if(ion_sav.eq.0) then
           call save1param(Gm_ion,tno//'ion.dac.',1)
-          call save_param_hdf5(Gm_ion, "ion.dac.", 3, &
-            (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+          call save_param_hdf5(Gm_ion, "ion.dac.", 3)
         endif
         if(rec_sav.eq.0) then
           call save1param(Gm_rec,tno//'rec.dac.',1)
-          call save_param_hdf5(Gm_rec, "rec.dac.", 3, &
-            (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+          call save_param_hdf5(Gm_rec, "rec.dac.", 3)
         endif
       endif
       ! include type=4 ionization and recombination results
@@ -293,12 +280,12 @@ contains
         call save1param(Nexcite(:,:,:,5),tno//'nexcite5.dac.',1)
         call save1param(Nexcite(:,:,:,6),tno//'nexcite6.dac.',1)
         ! analogous save commands for HDF5 files
-        call save_param_hdf5(Nexcite(:,:,:,1), "nexcite1.dac.", 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
-        call save_param_hdf5(Nexcite(:,:,:,2), "nexcite2.dac.", 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
-        call save_param_hdf5(Nexcite(:,:,:,3), "nexcite3.dac.", 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
-        call save_param_hdf5(Nexcite(:,:,:,4), "nexcite4.dac.", 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
-        call save_param_hdf5(Nexcite(:,:,:,5), "nexcite5.dac.", 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
-        call save_param_hdf5(Nexcite(:,:,:,6), "nexcite6.dac.", 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+        call save_param_hdf5(Nexcite(:,:,:,1), "nexcite1.dac.", 3)
+        call save_param_hdf5(Nexcite(:,:,:,2), "nexcite2.dac.", 3)
+        call save_param_hdf5(Nexcite(:,:,:,3), "nexcite3.dac.", 3)
+        call save_param_hdf5(Nexcite(:,:,:,4), "nexcite4.dac.", 3)
+        call save_param_hdf5(Nexcite(:,:,:,5), "nexcite5.dac.", 3)
+        call save_param_hdf5(Nexcite(:,:,:,6), "nexcite6.dac.", 3)
       endif
       ! include viscosity results
       if((flag_visc.ge.1).and.(vs_sav.eq.0)) then
@@ -306,24 +293,22 @@ contains
         call save1param(visc(:,:,:,2),tno//"viscy.dac.",1)
         call save1param(visc(:,:,:,3),tno//"viscz.dac.",1)
         ! analogous save commands for HDF5 files
-        call save_param_hdf5(visc(:,:,:,1), "viscx.dac.", 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
-        call save_param_hdf5(visc(:,:,:,2), "viscy.dac.", 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
-        call save_param_hdf5(visc(:,:,:,3), "viscz.dac.", 3, (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+        call save_param_hdf5(visc(:,:,:,1), "viscx.dac.", 3)
+        call save_param_hdf5(visc(:,:,:,2), "viscy.dac.", 3)
+        call save_param_hdf5(visc(:,:,:,3), "viscz.dac.", 3)
       endif
     endif
 
     if(flag_pip.eq.1 .or.flag_mhd.eq.0) then
       do i=1,nvar_h
         call save1param(U_h(:,:,:,i),tno//trim(file_h(i)),1)
-        call save_param_hdf5(U_h(:,:,:,i), trim(file_h(i)), 3, &
-          (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+        call save_param_hdf5(U_h(:,:,:,i), trim(file_h(i)), 3)
       enddo
     endif
     ! Save divergence of B-field values (currently used in testing)
     if(flag_divb.eq.1 .and. flag_mhd.eq.1 .and. ps_sav .eq.0) then
       call save1param(U_m(:,:,:,9),tno//trim(file_m(9)),1)
-      call save_param_hdf5(U_m(:,:,:,9), trim(file_m(9)), 3, &
-        (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
+      call save_param_hdf5(U_m(:,:,:,9), trim(file_m(9)), 3)
     endif
 
   end subroutine save_varfiles
@@ -370,7 +355,7 @@ contains
   !
   ! Saving a single variable array (of arbitrary rank) to an hdf5 file
   !
-  subroutine save_param_hdf5(data, varname, rank, dims)
+  subroutine save_param_hdf5(data, varname, rank)
     !
     ! This is a refactor of iot_rot.save1param, using the HDF5 library
     ! e.g. - save_param_hdf5(visc(:,:,:,1), 'viscx', 3, (/ix,jx,kx/))
@@ -389,8 +374,16 @@ contains
     ! Define file path based on rank type
     if (rank.eq.3) then
       fpath = trim(outdir) // '/' // tno // varname // cno // '.h5'
+      dims = (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/)
     else if(rank.eq.1) then
       fpath = trim(outdir) // varname // '.h5'
+      if(index(varname, 'x.dac.') /= 0) then
+        dims = (/INT(ix, KIND=8)/)
+      else if(index(varname, 'y.dac.') /= 0) then
+        dims = (/INT(jx, KIND=8)/)
+      else if(index(varname, 'z.dac.') /= 0) then
+        dims = (/INT(kx, KIND=8)/)
+      end if
     end if
     ! Creating file, dataspace & dataset
     CALL h5open_f(error)
