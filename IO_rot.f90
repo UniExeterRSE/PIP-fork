@@ -44,14 +44,14 @@ contains
 
     ! create single-node storage file
     file_path = trim(outdir) // '/t' // tno // '.c' // cno // '.h5'
-    file_id = create_hdf5(file_path)
+    out_fid = create_hdf5(file_path)
 
     !if nout = 0 initial setting for output is done^^^^^^^^^^^^^^^^^^^^^^
     nt=nt+1
     if(nout.eq.0) then
       call set_initial_out
-      call save_coordinates       ! add file_id as input-arg
-      call def_varfiles(0)        ! add file_id as input-arg
+      call save_coordinates(out_fid)
+      call def_varfiles(0, out_fid)
       start_time=MPI_Wtime()
       if(flag_mpi.eq.0 .or. my_rank.eq.0) then
         call mk_config
@@ -96,15 +96,17 @@ contains
         enddo;enddo
           print *,"NT,TOTAL_DIVB, maxJ =",nt,total_divb,sqrt(max_C)
       endif
-      call save_varfiles(nout)   ! add file_id as input-arg
+
+      call save_varfiles(nout, out_fid)
       nout=nout+1
     endif
 
-    CALL close_hdf5(file_id)
+    CALL close_hdf5(out_fid)
   end subroutine output
 
-  subroutine save_coordinates
+  subroutine save_coordinates(out_fid)
     character*4 tmp_id
+    integer :: out_fid          ! output hdf5 file id
 
     if(flag_mpi.eq.0 .or.(mpi_pos(2).eq.0.and.mpi_pos(3).eq.0)) then
       write(tmp_id,"(i4.4)")mpi_pos(1)
@@ -151,8 +153,9 @@ contains
 
   end subroutine save_coordinates
 
-  subroutine def_varfiles(append)
+  subroutine def_varfiles(append, out_fid)
     integer,intent(in)::append
+    integer :: out_fid            ! output hdf5 file id
 
     write(tno,"(i4.4)")nout
 
@@ -242,12 +245,13 @@ contains
   end subroutine epilogue
 
 
-  subroutine save_varfiles(n_out)
+  subroutine save_varfiles(n_out, out_fid)
     integer n_out
     integer i
+    integer out_fid       ! output hdf5 file id
 
     if(n_out.ne.0) then
-       call def_varfiles(1)
+       call def_varfiles(1, out_fid)
     endif
     write(mf_t) time
     close(mf_t)
