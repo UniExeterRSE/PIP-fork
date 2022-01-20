@@ -40,13 +40,18 @@ contains
     integer,intent(in)::out
     integer i,j,k,outesav
     double precision total_divB,cx,cy,max_C,divb
+    character(*) :: file_path
+
+    ! create single-node storage file
+    file_path = trim(outdir) // '/t' // tno // '.c' // cno // '.h5'
+    file_id = create_hdf5(file_path)
 
     !if nout = 0 initial setting for output is done^^^^^^^^^^^^^^^^^^^^^^
     nt=nt+1
     if(nout.eq.0) then
       call set_initial_out
-      call save_coordinates
-      call def_varfiles(0)
+      call save_coordinates       ! add file_id as input-arg
+      call def_varfiles(0)        ! add file_id as input-arg
       start_time=MPI_Wtime()
       if(flag_mpi.eq.0 .or. my_rank.eq.0) then
         call mk_config
@@ -91,9 +96,11 @@ contains
         enddo;enddo
           print *,"NT,TOTAL_DIVB, maxJ =",nt,total_divb,sqrt(max_C)
       endif
-      call save_varfiles(nout)
+      call save_varfiles(nout)   ! add file_id as input-arg
       nout=nout+1
     endif
+
+    CALL close_hdf5(file_id)
   end subroutine output
 
   subroutine save_coordinates
@@ -180,7 +187,7 @@ contains
       call save_param_hdf5(eta, "et.dac.", 3, &
         (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/))
     endif
-    
+
     if(flag_col.eq.1 .and. col_sav.eq.0) then
       call save1param(ac,tno//'col.dac.',1)
       call save_param_hdf5(ac, "col.dac.", 3, &
@@ -332,6 +339,29 @@ contains
 !print*,mf_q,name,q(1,1,1,:)
     close(mf_q)
   end subroutine save1param
+
+  !
+  ! Define a new HDF5 file for parameter storage
+  !
+  function create_hdf5(fpath) result(file_id)
+    integer :: error                ! Error flag
+    integer(HID_T) :: file_id       ! File identifier
+    character(*), intent(in) :: fpath
+
+    CALL h5open_f(error)
+    CALL h5fcreate_f(trim(fpath) , H5F_ACC_TRUNC_F, file_id, error)
+  end function
+
+  !
+  ! Close given HDF5 file
+  !
+  subroutine close_hdf5(file_id)
+    integer :: error                ! Error flag
+    integer(HID_T) :: file_id       ! File identifier
+
+    CALL h5fclose_f(file_id, error)
+    CALL h5close_f(error)
+  end subroutine close_hdf5
 
   !
   ! Saving a single variable array (of arbitrary rank) to an hdf5 file
