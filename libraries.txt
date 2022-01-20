@@ -1,0 +1,16 @@
+# needed & optional software libraries
+make
+cmake
+git
+curl
+openmpi-bin
+libopenmpi-dev
+libhdf5-dev
+libhdf5-openmpi-dev
+gfortran
+libcoarrays-openmpi-dev
+libcaf-openmpi-3
+libcoarrays-dev
+python3
+python3-pip
+python3-h5py
