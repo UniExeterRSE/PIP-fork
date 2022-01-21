@@ -46,7 +46,7 @@ contains
     write(tno, "(i4.4)") nout
     ! create single-node storage file
     file_path = trim(outdir) // 't' // tno // '.c' // cno // '.h5'
-    out_fid = create_hdf5(trim(file_path))
+    call create_hdf5(trim(file_path), out_fid)
 
     !if nout = 0 initial setting for output is done^^^^^^^^^^^^^^^^^^^^^^
     nt=nt+1
@@ -333,14 +333,14 @@ contains
   !
   ! Define a new HDF5 file for parameter storage
   !
-  function create_hdf5(fpath) result(file_id)
+  subroutine create_hdf5(fpath, file_id)
     integer :: error                ! Error flag
-    integer(HID_T) :: file_id       ! File identifier
+    integer(HID_T), intent(out) :: file_id       ! File identifier
     character(*), intent(in) :: fpath
 
     CALL h5open_f(error)
     CALL h5fcreate_f(trim(fpath) , H5F_ACC_TRUNC_F, file_id, error)
-  end function
+  end subroutine create_hdf5
 
   !
   ! Close given HDF5 file
@@ -384,10 +384,8 @@ contains
       end if
     end if
     ! Creating dataspace & dataset
-    CALL h5open_f(error)
     CALL h5screate_simple_f(rank, dims, dspace_id, error)
-    CALL h5dcreate_f(file_id, varname, H5T_NATIVE_DOUBLE, dspace_id, &
-      dset_id, error)
+    CALL h5dcreate_f(file_id, varname, H5T_NATIVE_DOUBLE, dspace_id, dest_id, error)
 
     ! write 3D data to file
     CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, error)
@@ -395,7 +393,6 @@ contains
     ! Closing connections in reverse order
     CALL h5dclose_f(dset_id, error)
     CALL h5sclose_f(dspace_id, error)
-    CALL h5close_f(error)
 
   end subroutine save_param_hdf5
 
