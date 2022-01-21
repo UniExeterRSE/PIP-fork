@@ -3,4 +3,5 @@ Data/
 *.[oa]
 *.mod
 *.out
+*.err
 *.h5
