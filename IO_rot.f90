@@ -43,17 +43,12 @@ contains
     character(40) :: file_path
     integer(kind=8) :: out_fid
 
-    write(tno, "(i4.4)") nout
-    ! create single-node storage file
-    file_path = trim(outdir) // 't' // tno // '.c' // cno // '.h5'
-    call create_hdf5(trim(file_path), out_fid)
-
     !if nout = 0 initial setting for output is done^^^^^^^^^^^^^^^^^^^^^^
     nt=nt+1
     if(nout.eq.0) then
       call set_initial_out
-      call save_coordinates(out_fid)
-      call def_varfiles(0, out_fid)
+      !call save_coordinates(out_fid)
+      !call def_varfiles(0, out_fid)
       start_time=MPI_Wtime()
       if(flag_mpi.eq.0 .or. my_rank.eq.0) then
         call mk_config
@@ -74,6 +69,18 @@ contains
     !output variables
     if((time.ge.get_next_output(nout,time,esav)) .or. (out.eq.1) .or. (outesav.eq.1)) then
       end_time=MPI_Wtime()
+
+      write(tno, "(i4.4)") nout
+      ! create single-node storage file
+      file_path = trim(outdir) // 't' // tno // '.c' // cno // '.h5'
+      call create_hdf5(trim(file_path), out_fid)
+      ! save contents to HDF5 file
+      CALL save_coordinates(out_fid)
+      if(nout == 0) then
+        call def_varfiles(0, out_fid)
+      end if
+      CALL save_varfiles(nout, out_fid)
+      CALL close_hdf5(out_fid)
 
       if(flag_mpi.eq.0 .or.my_rank.eq.0) &
         write(6,*) 'Time,dt,nout,nt,elapsed time: ',time,dt,nout,nt,end_time-start_time
@@ -99,11 +106,9 @@ contains
           print *,"NT,TOTAL_DIVB, maxJ =",nt,total_divb,sqrt(max_C)
       endif
 
-      call save_varfiles(nout, out_fid)
       nout=nout+1
     endif
 
-    CALL close_hdf5(out_fid)
   end subroutine output
 
   subroutine save_coordinates(out_fid)
@@ -385,7 +390,7 @@ contains
     end if
     ! Creating dataspace & dataset
     CALL h5screate_simple_f(rank, dims, dspace_id, error)
-    CALL h5dcreate_f(file_id, varname, H5T_NATIVE_DOUBLE, dspace_id, dest_id, error)
+    CALL h5dcreate_f(file_id, varname, H5T_NATIVE_DOUBLE, dspace_id, dset_id, error)
 
     ! write 3D data to file
     CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, error)
