@@ -51,6 +51,8 @@ contains
     ! create single-node storage file
     file_path = trim(outdir) // 't' // tno // '.c' // cno // '.h5'
     call create_hdf5(trim(file_path), out_fid)
+    ! save coordinates into every file
+    call save_coordinates(out_fid)
     ! create HDF5 dataspace for 3D variables
     call create_dataspace(dsid_3D, 3, 'multiple')
 
@@ -60,8 +62,7 @@ contains
     nt=nt+1
     if(nout.eq.0) then
       call set_initial_out
-      ! save coordinates & initial variables to output HDF5 file
-      call save_coordinates(out_fid)
+      ! save initial variables to output HDF5 file
       call def_varfiles(0, out_fid, dsid_3D)
 
       start_time=MPI_Wtime()
