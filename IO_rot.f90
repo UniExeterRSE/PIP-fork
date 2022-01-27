@@ -42,21 +42,38 @@ contains
     double precision total_divB,cx,cy,max_C,divb
     character(40) :: file_path
     integer(kind=8) :: out_fid
+    integer(HID_T) :: dsid_3D
 
-    !if nout = 0 initial setting for output is done^^^^^^^^^^^^^^^^^^^^^^
+    !
+    ! Create HDF5 output file & 3D dataspace for specific process
+    !
+    write(tno, "(i4.4)") nout
+    ! create single-node storage file
+    file_path = trim(outdir) // 't' // tno // '.c' // cno // '.h5'
+    call create_hdf5(trim(file_path), out_fid)
+    ! create HDF5 dataspace for 3D variables
+    call create_dataspace(dsid_3D, 3, 'multiple')
+
+    !
+    ! if nout = 0 initial setting for output is done
+    !
     nt=nt+1
     if(nout.eq.0) then
       call set_initial_out
-      !call save_coordinates(out_fid)
-      !call def_varfiles(0, out_fid)
+      ! save coordinates & initial variables to output HDF5 file
+      call save_coordinates(out_fid)
+      call def_varfiles(0, out_fid, dsid_3D)
+
       start_time=MPI_Wtime()
       if(flag_mpi.eq.0 .or. my_rank.eq.0) then
         call mk_config
       endif
       call initialize_IOT(dtout,tend,output_type)
     endif
-    !^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    !Check for physical-time save
+
+    !
+    ! Check for physical-time save
+    !
     end_time=MPI_Wtime()
     outesav=-1
     if (((end_time-start_time) .ge. emsavtime) .and. (esav .eq. 1)) then
@@ -66,21 +83,11 @@ contains
         write(6,*) 'calling emergency save'
     endif
 
-    !output variables
+    !
+    ! output variables
+    !
     if((time.ge.get_next_output(nout,time,esav)) .or. (out.eq.1) .or. (outesav.eq.1)) then
       end_time=MPI_Wtime()
-
-      write(tno, "(i4.4)") nout
-      ! create single-node storage file
-      file_path = trim(outdir) // 't' // tno // '.c' // cno // '.h5'
-      call create_hdf5(trim(file_path), out_fid)
-      ! save contents to HDF5 file
-      CALL save_coordinates(out_fid)
-      if(nout == 0) then
-        call def_varfiles(0, out_fid)
-      end if
-      CALL save_varfiles(nout, out_fid)
-      CALL close_hdf5(out_fid)
 
       if(flag_mpi.eq.0 .or.my_rank.eq.0) &
         write(6,*) 'Time,dt,nout,nt,elapsed time: ',time,dt,nout,nt,end_time-start_time
@@ -106,14 +113,22 @@ contains
           print *,"NT,TOTAL_DIVB, maxJ =",nt,total_divb,sqrt(max_C)
       endif
 
+      ! Save simulation variables to output HDF5 file
+      call save_varfiles(nout, out_fid, dsid_3D)
+
       nout=nout+1
     endif
+
+    ! close HDF5 file connection and 3D Dataspace
+    call close_hdf5(out_fid, dsid_3D)
 
   end subroutine output
 
   subroutine save_coordinates(out_fid)
     character*4 tmp_id
-    integer(kind=8) :: out_fid          ! output hdf5 file id
+    integer :: error                    ! Error flag
+    integer(kind=8) :: out_fid          ! HDF5 File identifie
+    integer(kind=8) :: x_dsid, y_dsid, z_dsid   ! Dataspace identifiers
 
     if(flag_mpi.eq.0 .or.(mpi_pos(2).eq.0.and.mpi_pos(3).eq.0)) then
       write(tmp_id,"(i4.4)")mpi_pos(1)
@@ -124,8 +139,10 @@ contains
       close(mf_x)
       close(mf_dx)
       ! now save as hdf5
-      call save_param_hdf5(out_fid, x, "xgrid", 1)
-      call save_param_hdf5(out_fid, dx, "dx", 1)
+      call create_dataspace(x_dsid, 1, 'x')
+      call save_param_hdf5(out_fid, x_dsid, x, "xgrid", 1)
+      call save_param_hdf5(out_fid, x_dsid, dx, "dx", 1)
+      call h5sclose_f(x_dsid, error)
     endif
 
     if(ndim.ge.2) then
@@ -138,8 +155,10 @@ contains
         close(mf_y)
         close(mf_dy)
         ! now save as hdf5
-        call save_param_hdf5(out_fid, y, "ygrid", 1)
-        call save_param_hdf5(out_fid, dy, "dy", 1)
+        call create_dataspace(y_dsid, 1, 'y')
+        call save_param_hdf5(out_fid, y_dsid, y, "ygrid", 1)
+        call save_param_hdf5(out_fid, y_dsid, dy, "dy", 1)
+        call h5sclose_f(y_dsid, error)
       endif
 
       if(ndim.ge.3) then
@@ -152,64 +171,67 @@ contains
           close(mf_z)
           close(mf_dz)
           ! now save as hdf5
-          call save_param_hdf5(out_fid, z, "zgrid", 1)
-          call save_param_hdf5(out_fid, dz, "dz", 1)
+          call create_dataspace(z_dsid, 1, 'z')
+          call save_param_hdf5(out_fid, z_dsid, z, "zgrid", 1)
+          call save_param_hdf5(out_fid, z_dsid, dz, "dz", 1)
+          call h5sclose_f(z_dsid, error)
         endif
       endif
     endif
 
   end subroutine save_coordinates
 
-  subroutine def_varfiles(append, out_fid)
+  subroutine def_varfiles(append, out_fid, dspace_id)
     integer,intent(in)::append
     integer(kind=8) :: out_fid            ! output hdf5 file id
+    integer(HID_T) :: dspace_id           ! 3D dataspace id
 
     write(tno,"(i4.4)")nout
 
     if(flag_pip.eq.1.or.flag_amb.eq.1) then
       if(ac_sav.eq.0) then
         call save1param(ac,tno//'ac.dac.',1)
-        call save_param_hdf5(out_fid, ac, "ac", 3)
+        call save_param_hdf5(out_fid, dspace_id, ac, "ac", 3)
       endif
       if(xi_sav.eq.0) then
         call save1param(xi_n,tno//'xi.dac.',1)
-        call save_param_hdf5(out_fid, xi_n, "xi", 3)
+        call save_param_hdf5(out_fid, dspace_id, xi_n, "xi", 3)
       endif
     endif
     ! include type=1 ionization and recombination results
     if(flag_pip.eq.1.and.flag_ir.eq.1) then
       if(ion_sav.eq.0) then
         call save1param(Gm_ion,tno//'ion.dac.',1)
-        call save_param_hdf5(out_fid, Gm_ion, "ion", 3)
+        call save_param_hdf5(out_fid, dspace_id, Gm_ion, "ion", 3)
       endif
       if(rec_sav.eq.0) then
         call save1param(Gm_rec,tno//'rec.dac.',1)
-        call save_param_hdf5(out_fid, Gm_rec, "rec", 3)
+        call save_param_hdf5(out_fid, dspace_id, Gm_rec, "rec", 3)
       endif
     endif
     ! include resistivity results
     if(flag_mhd.eq.1.and.flag_resi.eq.1 .and. et_sav.eq.0) then
       call save1param(eta,tno//'et.dac.',1)
-      call save_param_hdf5(out_fid, eta, "et", 3)
+      call save_param_hdf5(out_fid, dspace_id, eta, "et", 3)
     endif
 
     if(flag_col.eq.1 .and. col_sav.eq.0) then
       call save1param(ac,tno//'col.dac.',1)
-      call save_param_hdf5(out_fid, ac, "col", 3)
+      call save_param_hdf5(out_fid, dspace_id, ac, "col", 3)
     endif
     if(flag_grav.eq.1 .and. gr_sav.eq.0) then
       call save1param(gra,tno//'gr.dac.',3)
-      call save_param_hdf5(out_fid, gra, "gr", 3)
+      call save_param_hdf5(out_fid, dspace_id, gra, "gr", 3)
     endif
     if(flag_visc.eq.1 .and. vs_sav.eq.0) then
       call save1param(mu,tno//'vs.dac.',1)
-      call save_param_hdf5(out_fid, mu, "vs", 3)
+      call save_param_hdf5(out_fid, dspace_id, mu, "vs", 3)
     endif
 
     if(flag_pip.eq.1.and.flag_ir_type.eq.0.and.flag_IR.ne.0) then
       if(heat_sav.eq.0) then
         call save1param(arb_heat,tno//'aheat.dac.',1)
-        call save_param_hdf5(out_fid, arb_heat, "aheat", 3)
+        call save_param_hdf5(out_fid, dspace_id, arb_heat, "aheat", 3)
       endif
     endif
 
@@ -243,14 +265,15 @@ contains
   end subroutine epilogue
 
 
-  subroutine save_varfiles(n_out, out_fid)
+  subroutine save_varfiles(n_out, out_fid, dspace_id)
     integer n_out
     integer i
     integer(kind=8) :: out_fid       ! output hdf5 file id
+    integer(HID_T) :: dspace_id      ! 3D dataspace id
     character(8) :: exc_name        ! concat name of Nexcite# variable
 
     if(n_out.ne.0) then
-       call def_varfiles(1, out_fid)
+       call def_varfiles(1, out_fid, dspace_id)
     endif
     write(mf_t) time
     close(mf_t)
@@ -259,24 +282,24 @@ contains
     if(flag_mhd.eq.1) then
       do i=1,nvar_m
         call save1param(U_m(:,:,:,i),tno//trim(file_m(i)),1)
-        call save_param_hdf5(out_fid, U_m(:,:,:,i), trim(file_m(i)), 3)
+        call save_param_hdf5(out_fid, dspace_id, U_m(:,:,:,i), trim(file_m(i)), 3)
       enddo
       ! include resistivity results
       if(flag_resi.ge.2) then
         if(et_sav.eq.0) then
           call save1param(eta,tno//"et.dac.",1)
-          call save_param_hdf5(out_fid, eta, "et", 3)
+          call save_param_hdf5(out_fid, dspace_id, eta, "et", 3)
         endif
       endif
       ! include type>=1 ionization and recombination results
       if(flag_ir.ge.1) then
         if(ion_sav.eq.0) then
           call save1param(Gm_ion,tno//'ion.dac.',1)
-          call save_param_hdf5(out_fid, Gm_ion, "ion", 3)
+          call save_param_hdf5(out_fid, dspace_id, Gm_ion, "ion", 3)
         endif
         if(rec_sav.eq.0) then
           call save1param(Gm_rec,tno//'rec.dac.',1)
-          call save_param_hdf5(out_fid, Gm_rec, "rec", 3)
+          call save_param_hdf5(out_fid, dspace_id, Gm_rec, "rec", 3)
         endif
       endif
       ! include type=4 ionization and recombination results
@@ -290,7 +313,7 @@ contains
         ! analogous save commands for HDF5 files
         do i=1,6
           write(exc_name, '(a, i0)') 'nexcite', i
-          call save_param_hdf5(out_fid, Nexcite(:,:,:,i), exc_name, 3)
+          call save_param_hdf5(out_fid, dspace_id, Nexcite(:,:,:,i), exc_name, 3)
         end do
       endif
       ! include viscosity results
@@ -299,22 +322,22 @@ contains
         call save1param(visc(:,:,:,2),tno//"viscy.dac.",1)
         call save1param(visc(:,:,:,3),tno//"viscz.dac.",1)
         ! analogous save commands for HDF5 files
-        call save_param_hdf5(out_fid, visc(:,:,:,1), "viscx", 3)
-        call save_param_hdf5(out_fid, visc(:,:,:,2), "viscy", 3)
-        call save_param_hdf5(out_fid, visc(:,:,:,3), "viscz", 3)
+        call save_param_hdf5(out_fid, dspace_id, visc(:,:,:,1), "viscx", 3)
+        call save_param_hdf5(out_fid, dspace_id, visc(:,:,:,2), "viscy", 3)
+        call save_param_hdf5(out_fid, dspace_id, visc(:,:,:,3), "viscz", 3)
       endif
     endif
 
     if(flag_pip.eq.1 .or.flag_mhd.eq.0) then
       do i=1,nvar_h
         call save1param(U_h(:,:,:,i),tno//trim(file_h(i)),1)
-        call save_param_hdf5(out_fid, U_h(:,:,:,i), trim(file_h(i)), 3)
+        call save_param_hdf5(out_fid, dspace_id, U_h(:,:,:,i), trim(file_h(i)), 3)
       enddo
     endif
     ! Save divergence of B-field values (currently used in testing)
     if(flag_divb.eq.1 .and. flag_mhd.eq.1 .and. ps_sav .eq.0) then
       call save1param(U_m(:,:,:,9),tno//trim(file_m(9)),1)
-      call save_param_hdf5(out_fid, U_m(:,:,:,9), trim(file_m(9)), 3)
+      call save_param_hdf5(out_fid, dspace_id, U_m(:,:,:,9), trim(file_m(9)), 3)
     endif
 
   end subroutine save_varfiles
@@ -347,57 +370,79 @@ contains
     CALL h5fcreate_f(trim(fpath) , H5F_ACC_TRUNC_F, file_id, error)
   end subroutine create_hdf5
 
+  subroutine create_dataspace(dspace_id, array_rank, varname)
+    integer :: error
+    integer(HID_T), intent(out) :: dspace_id
+    character(*), intent(in) :: varname
+    integer, intent(in) :: array_rank
+    integer(SIZE_T), dimension(array_rank) :: dims
+
+    ! Define dimensions array based on rank value
+    if (array_rank.eq.3) then
+      dims = (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/)
+    else if(array_rank.eq.1) then
+      if(index(varname, 'x') /= 0) then
+        dims = (/INT(ix, KIND=8)/)
+      else if(index(varname, 'y') /= 0) then
+        dims = (/INT(jx, KIND=8)/)
+      else if(index(varname, 'z') /= 0) then
+        dims = (/INT(kx, KIND=8)/)
+      end if
+    end if
+
+    CALL h5screate_simple_f(array_rank, dims, dspace_id, error)
+  end subroutine create_dataspace
+
   !
   ! Close given HDF5 file
   !
-  subroutine close_hdf5(file_id)
+  subroutine close_hdf5(file_id, dspace_id)
     integer :: error                ! Error flag
     integer(HID_T) :: file_id       ! File identifier
+    integer(HID_T) :: dspace_id     ! Dataspace identifier
 
+    CALL h5sclose_f(dspace_id, error)
     CALL h5fclose_f(file_id, error)
     CALL h5close_f(error)
   end subroutine close_hdf5
 
+
   !
   ! Saving a single variable array (of arbitrary rank) to an hdf5 file
   !
-  subroutine save_param_hdf5(file_id, data, varname, rank)
+  subroutine save_param_hdf5(file_id, dspace_id, data, varname, array_rank)
     !
     ! This is a refactor of iot_rot.save1param, using the HDF5 library
-    ! e.g. - save_param_hdf5(visc(:,:,:,1), 'viscx', 3, (/ix,jx,kx/))
     !
-    integer, intent(in) :: rank
-    integer(SIZE_T), dimension(rank) :: dims
+    integer, intent(in) :: array_rank
+    integer(SIZE_T), dimension(array_rank) :: dims
     double precision, dimension(*) :: data
     character(*), intent(in) :: varname
-
-    integer :: error                ! Error flag
     integer(HID_T) :: file_id       ! File identifier
     integer(HID_T) :: dspace_id     ! Dataspace identifier
+
+    integer :: error                ! HDF5 Error flag
     integer(HID_T) :: dset_id       ! Dataset identifier
 
-    ! Define file path based on rank type
-    if (rank.eq.3) then
+    ! Define dimensions array based on rank value
+    if (array_rank.eq.3) then
       dims = (/INT(ix, KIND=8), INT(jx, KIND=8), INT(kx, KIND=8)/)
-    else if(rank.eq.1) then
-      if(index(varname, 'x.dac.') /= 0) then
+    else if(array_rank.eq.1) then
+      if(index(varname, 'x') /= 0) then
         dims = (/INT(ix, KIND=8)/)
-      else if(index(varname, 'y.dac.') /= 0) then
+      else if(index(varname, 'y') /= 0) then
         dims = (/INT(jx, KIND=8)/)
-      else if(index(varname, 'z.dac.') /= 0) then
+      else if(index(varname, 'z') /= 0) then
         dims = (/INT(kx, KIND=8)/)
       end if
     end if
-    ! Creating dataspace & dataset
-    CALL h5screate_simple_f(rank, dims, dspace_id, error)
-    CALL h5dcreate_f(file_id, varname, H5T_NATIVE_DOUBLE, dspace_id, dset_id, error)
 
+    ! Creating dataset
+    CALL h5dcreate_f(file_id, varname, H5T_NATIVE_DOUBLE, dspace_id, dset_id, error)
     ! write 3D data to file
     CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, error)
-
-    ! Closing connections in reverse order
+    ! Closing dataset connections
     CALL h5dclose_f(dset_id, error)
-    CALL h5sclose_f(dspace_id, error)
 
   end subroutine save_param_hdf5
 
