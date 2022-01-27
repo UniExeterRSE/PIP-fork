@@ -45,26 +45,11 @@ contains
     integer(HID_T) :: dsid_3D
 
     !
-    ! Create HDF5 output file & 3D dataspace for specific process
-    !
-    write(tno, "(i4.4)") nout
-    ! create single-node storage file
-    file_path = trim(outdir) // 't' // tno // '.c' // cno // '.h5'
-    call create_hdf5(trim(file_path), out_fid)
-    ! save coordinates into every file
-    call save_coordinates(out_fid)
-    ! create HDF5 dataspace for 3D variables
-    call create_dataspace(dsid_3D, 3, 'multiple')
-
-    !
     ! if nout = 0 initial setting for output is done
     !
     nt=nt+1
     if(nout.eq.0) then
       call set_initial_out
-      ! save initial variables to output HDF5 file
-      call def_varfiles(0, out_fid, dsid_3D)
-
       start_time=MPI_Wtime()
       if(flag_mpi.eq.0 .or. my_rank.eq.0) then
         call mk_config
@@ -114,14 +99,28 @@ contains
           print *,"NT,TOTAL_DIVB, maxJ =",nt,total_divb,sqrt(max_C)
       endif
 
+      !
+      ! Create HDF5 output file & 3D dataspace for specific process
+      !
+      write(tno, "(i4.4)") nout
+      ! create single-node storage file
+      file_path = trim(outdir) // 't' // tno // '.c' // cno // '.h5'
+      call create_hdf5(trim(file_path), out_fid)
+      ! create HDF5 dataspace for 3D variables
+      call create_dataspace(dsid_3D, 3, 'multiple')
+      call save_coordinates(out_fid)
+      ! save initial variables to output HDF5 file
+      if(nout .eq. 0) then
+        call def_varfiles(0, out_fid, dsid_3D)
+      end if
       ! Save simulation variables to output HDF5 file
       call save_varfiles(nout, out_fid, dsid_3D)
+      call close_hdf5(out_fid, dsid_3D)
 
       nout=nout+1
     endif
 
-    ! close HDF5 file connection and 3D Dataspace
-    call close_hdf5(out_fid, dsid_3D)
+
 
   end subroutine output
 
