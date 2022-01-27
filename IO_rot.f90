@@ -415,14 +415,21 @@ contains
     ! This is a refactor of iot_rot.save1param, using the HDF5 library
     !
     integer, intent(in) :: array_rank
-    integer(SIZE_T), dimension(array_rank) :: dims
     double precision, dimension(*) :: data
-    character(*), intent(in) :: varname
+    character(*) :: varname
     integer(HID_T) :: file_id       ! File identifier
     integer(HID_T) :: dspace_id     ! Dataspace identifier
 
+    integer(SIZE_T), dimension(array_rank) :: dims
     integer :: error                ! HDF5 Error flag
     integer(HID_T) :: dset_id       ! Dataset identifier
+    integer :: idx
+
+    ! strip off '.dac.' suffix on certain variable names
+    idx = index(varname, '.')
+    if(idx /= 0) then
+      varname = varname(1:idx-1)
+    end if
 
     ! Define dimensions array based on rank value
     if (array_rank.eq.3) then
