@@ -15,7 +15,8 @@ module io_rot
        total_iter,flag_amb,dtout,mpi_siz,nt,nmax,output_type,flag_ps,flag_divb,&
        flag_damp,damp_time,flag_rad,flag_ir_type,arb_heat,visc,esav,emsavtime,&
        ac_sav, xi_sav, ion_sav, rec_sav, col_sav, gr_sav, vs_sav, heat_sav, et_sav, ps_sav,&
-       Nexcite
+       Nexcite,&
+       file_id, plist_id, hdf5_error
   use mpi_rot,only:end_mpi
   use IOT_rot,only:initialize_IOT,get_next_output
   use Util_rot,only:get_word,get_value_integer
@@ -35,7 +36,9 @@ module io_rot
   double precision start_time,end_time
 
 contains
-  !output subroutine called from main
+  !
+  ! output subroutine called from main
+  !
   subroutine output(out)
     integer,intent(in)::out
     integer i,j,k,outesav
@@ -99,10 +102,13 @@ contains
           print *,"NT,TOTAL_DIVB, maxJ =",nt,total_divb,sqrt(max_C)
       endif
 
-      !
+      write(tno, "(i4.4)") nout
+      ! create output parallel HDF5 file for all data in time-step
+      file_path = trim(outdir) // 't' // tno // '.h5'
+      call create_parallel_hdf5(file_path)
+
       ! Create HDF5 output file & 3D dataspace for specific process
       !
-      write(tno, "(i4.4)") nout
       ! create single-node storage file
       file_path = trim(outdir) // 't' // tno // '.c' // cno // '.h5'
       call create_hdf5(trim(file_path), out_fid)
@@ -117,12 +123,41 @@ contains
       call save_varfiles(nout, out_fid, dsid_3D)
       call close_hdf5(out_fid, dsid_3D)
 
+      call close_parallel_hdf5()
+
       nout=nout+1
     endif
 
-
-
   end subroutine output
+
+
+  subroutine create_parallel_hdf5(file_path)
+    character(*), intent(in) :: file_path
+    INTEGER :: error                ! Error flags
+    ! MPI definitions and calls.
+    INTEGER :: comm, info
+    comm = MPI_COMM_WORLD
+    info = MPI_INFO_NULL
+
+    write(*,*) nt, nout, cno, my_rank
+
+    ! Initialize FORTRAN predefined datatypes
+    CALL h5open_f(error)
+
+    ! Setup file access property list with parallel I/O access.
+    CALL h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, hdf5_error)
+    CALL h5pset_fapl_mpio_f(plist_id, comm, info, hdf5_error)
+
+    ! Create the file collectively.
+    CALL h5fcreate_f(trim(file_path), H5F_ACC_TRUNC_F, file_id, hdf5_error, access_prp = plist_id)
+  end subroutine create_parallel_hdf5
+
+  subroutine close_parallel_hdf5()
+    ! Close the file and property list.
+    CALL h5pclose_f(plist_id, hdf5_error)
+    CALL h5fclose_f(file_id, hdf5_error)
+  end subroutine close_parallel_hdf5
+
 
   subroutine save_coordinates(out_fid)
     character*4 tmp_id
