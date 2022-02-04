@@ -150,6 +150,10 @@ contains
 
     ! Create the file collectively.
     CALL h5fcreate_f(trim(file_path), H5F_ACC_TRUNC_F, file_id, hdf5_error, access_prp = plist_id)
+
+    ! Create property list for collective dataset write
+    CALL h5pcreate_f(H5P_DATASET_XFER_F, plist_id, hdf5_error)
+    CALL h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, hdf5_error)
   end subroutine create_parallel_hdf5
 
   subroutine close_parallel_hdf5()
