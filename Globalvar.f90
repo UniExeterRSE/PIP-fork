@@ -83,7 +83,8 @@ module globalvar
   integer,save::mpi_siz(3),mpi_pos(3),vmpi
   character*4 cno
 ! for parallel HDF5 output
-  integer(HID_T), save :: file_id, plist_id, filespace_id
+  integer(HID_T), save :: file_id, plist_id
+  integer(HID_T), save :: filespace_id(4), memspace_id(4)
   integer :: hdf5_error
 
 !for limit

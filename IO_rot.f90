@@ -7,7 +7,7 @@ module io_rot
 ! Modification history
 ! 2013/05/29  S.Takasao
 !====================================================================
-  use globalvar,only:ix,jx,kx,ndim,dt,dt_cnd,U_h,U_m,time,cno,flag_stop,&
+  use globalvar,only:ix,jx,kx,ig,ndim,dt,dt_cnd,U_h,U_m,time,cno,flag_stop,&
        flag_mhd,flag_pip,flag_mpi,my_rank,indir,outdir,&
        ac,gm_ion,gm_rec,gra,eta,dxc,dyc,dzc,dx,dy,dz,x,y,z,&
        flag_ir,nvar_h,nvar_m,flag_resi,nt,nout,margin,gm,flag_restart,&
@@ -16,7 +16,7 @@ module io_rot
        flag_damp,damp_time,flag_rad,flag_ir_type,arb_heat,visc,esav,emsavtime,&
        ac_sav, xi_sav, ion_sav, rec_sav, col_sav, gr_sav, vs_sav, heat_sav, et_sav, ps_sav,&
        Nexcite,&
-       file_id, plist_id, hdf5_error
+       file_id, plist_id, hdf5_error, filespace_id, memspace_id
   use mpi_rot,only:end_mpi
   use IOT_rot,only:initialize_IOT,get_next_output
   use Util_rot,only:get_word,get_value_integer
@@ -106,6 +106,8 @@ contains
       ! create output parallel HDF5 file for all data in time-step
       file_path = trim(outdir) // 't' // tno // '.h5'
       call create_parallel_hdf5(file_path)
+      ! create file & local-memory dataspaces
+      call create_dataspaces()
 
       ! Create HDF5 output file & 3D dataspace for specific process
       !
@@ -133,16 +135,15 @@ contains
 
   subroutine create_parallel_hdf5(file_path)
     character(*), intent(in) :: file_path
-    INTEGER :: error                ! Error flags
     ! MPI definitions and calls.
     INTEGER :: comm, info
     comm = MPI_COMM_WORLD
     info = MPI_INFO_NULL
 
-    write(*,*) nt, nout, cno, my_rank
+    !write(*,*) nt, nout, cno, my_rank
 
     ! Initialize FORTRAN predefined datatypes
-    CALL h5open_f(error)
+    CALL h5open_f(hdf5_error)
 
     ! Setup file access property list with parallel I/O access.
     CALL h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, hdf5_error)
@@ -156,7 +157,35 @@ contains
     CALL h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, hdf5_error)
   end subroutine create_parallel_hdf5
 
+  subroutine create_dataspaces()
+    integer(kind=8) :: dims_3Dfull(3), dims_3D(3)
+    integer(kind=8) :: dims_1D(1)
+    integer :: i
+
+    ! iterate over grid coordinates (X, Y, Z)
+    do i=1,3
+      dims_3Dfull(i) = ig(i) - 2*margin(i)
+      dims_3D(i) = dims_3Dfull(i)/mpi_siz(i)
+      ! Create 1D dataspaces for spatial coordinates
+      dims_1D = (/INT(dims_3Dfull(i))/)
+      CALL h5screate_simple_f(1, dims_1D, filespace_id(i), hdf5_error)
+      dims_1D = (/INT(dims_3D(i))/)
+      CALL h5screate_simple_f(1, dims_1D, memspace_id(i), hdf5_error)
+    end do
+
+    ! Create 3D dataspaces
+    CALL h5screate_simple_f(3, dims_3Dfull, filespace_id(4), hdf5_error)
+    CALL h5screate_simple_f(3, dims_3D, memspace_id(4), hdf5_error)
+  end subroutine create_dataspaces
+
   subroutine close_parallel_hdf5()
+    integer :: i
+
+    ! Close the dataspaces
+    do i=1,4
+      CALL h5sclose_f(filespace_id(i), hdf5_error)
+      CALL h5sclose_f(memspace_id(i), hdf5_error)
+    end do
     ! Close the file and property list.
     CALL h5pclose_f(plist_id, hdf5_error)
     CALL h5fclose_f(file_id, hdf5_error)
