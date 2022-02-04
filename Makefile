@@ -31,7 +31,7 @@ FC = h5pfc
 #FC = mpif90-mpich-mp
 
 
-FFLAGS = -O2
+FFLAGS = -O2 
 #FFLAGS = -I/usr/include/hdf5/serial
 #LDFLAGS = -lhdf5_fortran.a
 LIB_DIR=.

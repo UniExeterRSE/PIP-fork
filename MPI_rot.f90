@@ -1,5 +1,5 @@
 module mpi_rot
-  use globalvar,only:total_prc,my_rank,nvar_h,nvar_m,mpi_siz,mpi_pos,margin,&
+  use globalvar,only:total_prc,my_rank,nvar_h,nvar_m,mpi_siz,mpi_pos,mpi_comm, margin,&
        ix,jx,kx,ndim,flag_mpi_split,neighbor,U_h,U_m,flag_mhd,flag_pip,&
        cno,vmpi,flag_mpi,flag_bnd
   implicit none
@@ -10,8 +10,9 @@ contains
   subroutine set_mpi    
     !charm for MPI
     call mpi_init(ierr)
-    call mpi_comm_size(MPI_COMM_WORLD,total_prc,ierr)
-    call mpi_comm_rank(MPI_COMM_WORLD,my_rank,ierr)   
+    mpi_comm = MPI_COMM_WORLD
+    call mpi_comm_size(MPI_COMM,total_prc,ierr)
+    call mpi_comm_rank(MPI_COMM,my_rank,ierr)   
  
     if(flag_mpi.eq.0 .or.my_rank.eq.0) print *,"total cpu",total_prc
     vmpi=nvar_h+nvar_m

@@ -79,7 +79,7 @@ module globalvar
 
 !for mpi 
   integer,save::flag_mpi,flag_mpi_split,neighbor(6),my_rank,total_prc 
-  integer,save::mpi_siz(3),mpi_pos(3),vmpi
+  integer,save::mpi_siz(3),mpi_pos(3),vmpi,mpi_comm
   character*4 cno  
 
 !for limit
@@ -101,4 +101,5 @@ double precision,save :: emsavtime
 
 !optional save parameters
   integer, save :: ac_sav, xi_sav, ion_sav, rec_sav, col_sav, gr_sav, vs_sav, heat_sav, et_sav, ps_sav
+  
 end module globalvar
