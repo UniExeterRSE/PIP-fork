@@ -86,6 +86,7 @@ module globalvar
   integer(HID_T), save :: file_id, plist_id
   integer(HID_T), save :: filespace_id(4), memspace_id(4)
   integer :: hdf5_error
+  integer(kind=8) :: setting_dims(3), proc_dims(3)
 
 !for limit
   double precision,save :: ro_lim,pr_lim
