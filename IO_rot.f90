@@ -221,6 +221,34 @@ contains
     CALL h5dclose_f(dset_id, hdf5_error)
   end subroutine write_1D_array
 
+  subroutine write_3D_array(varname, data_array)
+    integer(HID_T) :: dset_id       ! Dataset identifier
+    integer(HSSIZE_T) :: offset(3)
+    double precision, dimension(*) :: data_array
+    character(*) :: varname
+    integer :: idx
+
+    ! strip off '.dac.' suffix on certain variable names
+    idx = index(varname, '.')
+    if(idx /= 0) varname = varname(1:idx-1)
+
+    ! Creating dataset
+    CALL h5dcreate_f(file_id, trim(varname), H5T_NATIVE_DOUBLE, filespace_id(4), dset_id, &
+                     hdf5_error)
+    ! Select hyperslab in the file.
+    !CALL h5dget_space_f(dset_id, filespace_id(4), hdf5_error)
+    !offset(1) = my_rank*coord_dim
+    !CALL h5sselect_hyperslab_f(filespace_id(4), H5S_SELECT_SET_F, offset, proc_dims, hdf5_error)
+    ! write data to file
+    !CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE,
+    !                data_array(1+margin(1):setting_dims(1)+margin(1), 1+margin(2):setting_dims(2)+margin(2), 1+margin(3):setting_dims(3)+margin(3)), &
+    !                setting_dims, hdf5_error, &
+    !                file_space_id = filespace_id(4), mem_space_id = memspace_id(4), &
+    !                xfer_prp = plist_id)
+    ! Closing dataset connections
+    CALL h5dclose_f(dset_id, hdf5_error)
+  end subroutine write_3D_array
+
 
   subroutine save_coordinates()
     character*4 tmp_id
@@ -372,6 +400,7 @@ contains
       do i=1,nvar_m
         call save1param(U_m(:,:,:,i),tno//trim(file_m(i)),1)
         call save_param_hdf5(out_fid, dspace_id, U_m(:,:,:,i), trim(file_m(i)), 3)
+        call write_3D_array(trim(file_m(i)), U_m(:,:,:,i))
       enddo
       ! include resistivity results
       if(flag_resi.ge.2) then
