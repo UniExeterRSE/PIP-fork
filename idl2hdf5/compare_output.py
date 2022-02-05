@@ -6,7 +6,7 @@ import pdb
 for i in np.arange(11):
     fn_dac = "testdata_con.{0:04d}.h5".format(i)
     # define hdf5 filename of file to check
-    fn_h5 = f"../Data/t{format(i, '04d')}.c0000.h5"
+    fn_h5 = f"../Data/t{format(i, '04d')}.h5"
 
     # For each reference file (contains multiple variables)
     with h5py.File(fn_dac, "r") as ref:
@@ -16,7 +16,7 @@ for i in np.arange(11):
                 new_data = np.array(new[param]).flatten()
 
                 # Compare element by element
-                comp = np.isclose(ref_data, new_data)
+                comp = np.isclose(ref_data[1:-1], new_data)
                 if not comp.all():
                     print(f"{param} parameter array in time step #{i} has mismatches")
                     #pdb.set_trace()
