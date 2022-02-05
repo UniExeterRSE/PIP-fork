@@ -193,58 +193,59 @@ contains
     CALL h5fclose_f(file_id, hdf5_error)
   end subroutine close_parallel_hdf5
 
-  subroutine write_1D_array(idx, varname, coord_grid)
-    integer(HID_T) :: dset_id       ! Dataset identifier
-    integer :: idx                  ! coordinate index (1:x, 2:y, 3:z)
-    integer :: coord_dim            ! size of 1D to be saved (after margins removed)
-    integer(HSSIZE_T) :: offset(1)
+  subroutine write_1D_array(n, varname, data_array)
+    integer(HID_T) :: dset_id         ! Dataset identifier
+    integer(HSSIZE_T) :: offset(1)    ! grid location offset for each MPI process
     integer(HSIZE_T) :: dims_1D(1)
-    double precision, dimension(*) :: coord_grid
+    integer :: n                      ! coordinate index (1:x, 2:y, 3:z)
     character(*) :: varname
+    double precision, dimension(*) :: data_array
 
-    coord_dim = proc_dims(idx)
     ! Creating dataset
-    CALL h5dcreate_f(file_id, trim(varname), H5T_NATIVE_DOUBLE, filespace_id(idx), dset_id, &
-                     hdf5_error)
+    CALL h5dcreate_f(file_id, trim(varname), H5T_NATIVE_DOUBLE, filespace_id(n), dset_id, hdf5_error)
     ! Select hyperslab in the file.
-    CALL h5dget_space_f(dset_id, filespace_id(idx), hdf5_error)
-    offset(1) = my_rank*coord_dim
-    dims_1D(1) = proc_dims(idx)
-    CALL h5sselect_hyperslab_f(filespace_id(idx), H5S_SELECT_SET_F, offset, dims_1D, hdf5_error)
+    CALL h5dget_space_f(dset_id, filespace_id(n), hdf5_error)
+    offset(1) = mpi_pos(n)*proc_dims(n)
+    dims_1D(1) = proc_dims(n)
+    CALL h5sselect_hyperslab_f(filespace_id(n), H5S_SELECT_SET_F, offset, dims_1D, hdf5_error)
     ! write data to file
-    dims_1D(1) = setting_dims(idx)
-    CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, coord_grid(1+margin(idx):coord_dim+margin(idx)), &
+    dims_1D(1) = setting_dims(n)
+    CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data_array(1+margin(n):proc_dims(n)+margin(n)), &
                     dims_1D, hdf5_error, &
-                    file_space_id = filespace_id(idx), mem_space_id = memspace_id(idx), &
+                    file_space_id = filespace_id(n), mem_space_id = memspace_id(n), &
                     xfer_prp = plist_id)
     ! Closing dataset connections
     CALL h5dclose_f(dset_id, hdf5_error)
   end subroutine write_1D_array
 
   subroutine write_3D_array(varname, data_array)
-    integer(HID_T) :: dset_id       ! Dataset identifier
-    integer(HSSIZE_T) :: offset(3)
-    double precision, dimension(*) :: data_array
+    integer(HID_T) :: dset_id         ! Dataset identifier
+    integer(HSSIZE_T) :: offset(3)    ! grid location offsets for each MPI process
+    integer(HSSIZE_T) :: end_idx(3)
+    integer :: per, n
     character(*) :: varname
-    integer :: idx
+    double precision :: data_array(ix,jx,kx)
 
     ! strip off '.dac.' suffix on certain variable names
-    idx = index(varname, '.')
-    if(idx /= 0) varname = varname(1:idx-1)
+    per = index(varname, '.')
+    if(per /= 0) varname = varname(1:per-1)
 
     ! Creating dataset
     CALL h5dcreate_f(file_id, trim(varname), H5T_NATIVE_DOUBLE, filespace_id(4), dset_id, &
                      hdf5_error)
     ! Select hyperslab in the file.
-    !CALL h5dget_space_f(dset_id, filespace_id(4), hdf5_error)
-    !offset(1) = my_rank*coord_dim
-    !CALL h5sselect_hyperslab_f(filespace_id(4), H5S_SELECT_SET_F, offset, proc_dims, hdf5_error)
+    CALL h5dget_space_f(dset_id, filespace_id(4), hdf5_error)
+    do n = 1,3
+      offset(n) = mpi_pos(n)*proc_dims(n)
+      end_idx(n) = setting_dims(n)+margin(n)
+    end do
+    CALL h5sselect_hyperslab_f(filespace_id(4), H5S_SELECT_SET_F, offset, proc_dims, hdf5_error)
     ! write data to file
-    !CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE,
-    !                data_array(1+margin(1):setting_dims(1)+margin(1), 1+margin(2):setting_dims(2)+margin(2), 1+margin(3):setting_dims(3)+margin(3)), &
-    !                setting_dims, hdf5_error, &
-    !                file_space_id = filespace_id(4), mem_space_id = memspace_id(4), &
-    !                xfer_prp = plist_id)
+    CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, &
+                    data_array(1+margin(1):end_idx(1), 1+margin(2):end_idx(2), 1+margin(3):end_idx(3)), &
+                    setting_dims, hdf5_error, &
+                    file_space_id = filespace_id(4), mem_space_id = memspace_id(4), &
+                    xfer_prp = plist_id)
     ! Closing dataset connections
     CALL h5dclose_f(dset_id, hdf5_error)
   end subroutine write_3D_array
