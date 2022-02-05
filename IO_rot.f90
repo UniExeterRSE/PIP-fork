@@ -109,6 +109,8 @@ contains
       call create_parallel_hdf5(file_path)
       ! create file & local-memory dataspaces
       call create_dataspaces()
+      ! save spatial grid coordinates
+      call save_coordinates()
 
       ! Create HDF5 output file & 3D dataspace for specific process
       !
@@ -117,7 +119,7 @@ contains
       call create_hdf5(trim(file_path), out_fid)
       ! create HDF5 dataspace for 3D variables
       call create_dataspace(dsid_3D, 3, 'multiple')
-      call save_coordinates(out_fid)
+
       ! save initial variables to output HDF5 file
       if(nout .eq. 0) then
         call def_varfiles(0, out_fid, dsid_3D)
@@ -164,8 +166,8 @@ contains
 
     ! iterate over grid coordinates (X, Y, Z)
     do i=1,3
-      setting_dims(i) = ig(i) - 2*margin(i)
-      proc_dims(i) = setting_dims(i)/mpi_siz(i)
+      proc_dims(i) = ig(i) - 2*margin(i)
+      setting_dims(i) = proc_dims(i)*mpi_siz(i)
       ! Create 1D dataspaces for spatial coordinates
       dims_1D = (/setting_dims(i)/)
       CALL h5screate_simple_f(1, dims_1D, filespace_id(i), hdf5_error)
@@ -191,12 +193,37 @@ contains
     CALL h5fclose_f(file_id, hdf5_error)
   end subroutine close_parallel_hdf5
 
+  subroutine write_1D_array(idx, varname, coord_grid)
+    integer(HID_T) :: dset_id       ! Dataset identifier
+    integer :: idx                  ! coordinate index (1:x, 2:y, 3:z)
+    integer :: coord_dim            ! size of 1D to be saved (after margins removed)
+    integer(HSSIZE_T) :: offset(1)
+    integer(HSIZE_T) :: dims_1D(1)
+    double precision, dimension(*) :: coord_grid
+    character(*) :: varname
 
-  subroutine save_coordinates(out_fid)
+    coord_dim = proc_dims(idx)
+    ! Creating dataset
+    CALL h5dcreate_f(file_id, trim(varname), H5T_NATIVE_DOUBLE, filespace_id(idx), dset_id, &
+                     hdf5_error)
+    ! Select hyperslab in the file.
+    CALL h5dget_space_f(dset_id, filespace_id(idx), hdf5_error)
+    offset(1) = my_rank*coord_dim
+    dims_1D(1) = proc_dims(idx)
+    CALL h5sselect_hyperslab_f(filespace_id(idx), H5S_SELECT_SET_F, offset, dims_1D, hdf5_error)
+    ! write data to file
+    dims_1D(1) = setting_dims(idx)
+    CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, coord_grid(1+margin(idx):coord_dim+margin(idx)), &
+                    dims_1D, hdf5_error, &
+                    file_space_id = filespace_id(idx), mem_space_id = memspace_id(idx), &
+                    xfer_prp = plist_id)
+    ! Closing dataset connections
+    CALL h5dclose_f(dset_id, hdf5_error)
+  end subroutine write_1D_array
+
+
+  subroutine save_coordinates()
     character*4 tmp_id
-    integer :: error                    ! Error flag
-    integer(kind=8) :: out_fid          ! HDF5 File identifie
-    integer(kind=8) :: x_dsid, y_dsid, z_dsid   ! Dataspace identifiers
 
     if(flag_mpi.eq.0 .or.(mpi_pos(2).eq.0.and.mpi_pos(3).eq.0)) then
       write(tmp_id,"(i4.4)")mpi_pos(1)
@@ -207,10 +234,8 @@ contains
       close(mf_x)
       close(mf_dx)
       ! now save as hdf5
-      call create_dataspace(x_dsid, 1, 'x')
-      call save_param_hdf5(out_fid, x_dsid, x, "xgrid", 1)
-      call save_param_hdf5(out_fid, x_dsid, dx, "dx", 1)
-      call h5sclose_f(x_dsid, error)
+      CALL write_1D_array(1, "xgrid", x)
+      CALL write_1D_array(1, "dx", dx)
     endif
 
     if(ndim.ge.2) then
@@ -223,10 +248,8 @@ contains
         close(mf_y)
         close(mf_dy)
         ! now save as hdf5
-        call create_dataspace(y_dsid, 1, 'y')
-        call save_param_hdf5(out_fid, y_dsid, y, "ygrid", 1)
-        call save_param_hdf5(out_fid, y_dsid, dy, "dy", 1)
-        call h5sclose_f(y_dsid, error)
+        CALL write_1D_array(1, "ygrid", y)
+        CALL write_1D_array(1, "dy", dy)
       endif
 
       if(ndim.ge.3) then
@@ -239,10 +262,8 @@ contains
           close(mf_z)
           close(mf_dz)
           ! now save as hdf5
-          call create_dataspace(z_dsid, 1, 'z')
-          call save_param_hdf5(out_fid, z_dsid, z, "zgrid", 1)
-          call save_param_hdf5(out_fid, z_dsid, dz, "dz", 1)
-          call h5sclose_f(z_dsid, error)
+          CALL write_1D_array(1, "zgrid", z)
+          CALL write_1D_array(1, "dz", dz)
         endif
       endif
     endif
