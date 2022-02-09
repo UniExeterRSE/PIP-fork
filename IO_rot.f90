@@ -130,8 +130,6 @@ contains
     comm = MPI_COMM_WORLD
     info = MPI_INFO_NULL
 
-    !write(*,*) nt, nout, cno, my_rank
-
     ! Initialize FORTRAN predefined datatypes
     CALL h5open_f(hdf5_error)
 
@@ -241,6 +239,15 @@ contains
   subroutine save_coordinates()
     character*4 tmp_id
 
+    ! Save the coordinate grids into the parallel HDF5 file
+    CALL write_1D_array(1, "xgrid", x)
+    CALL write_1D_array(2, "ygrid", y)
+    CALL write_1D_array(3, "zgrid", z)
+    ! Also include the grid spacings
+    CALL write_1D_array(1, "dx", dx)
+    CALL write_1D_array(2, "dy", dy)
+    CALL write_1D_array(3, "dz", dz)
+
     if(flag_mpi.eq.0 .or.(mpi_pos(2).eq.0.and.mpi_pos(3).eq.0)) then
       write(tmp_id,"(i4.4)")mpi_pos(1)
       call dacdef1d(mf_x,trim(outdir) // 'x.dac.'//tmp_id,6,ix)
@@ -249,9 +256,6 @@ contains
       write(mf_dx) dx
       close(mf_x)
       close(mf_dx)
-      ! now save as hdf5
-      CALL write_1D_array(1, "xgrid", x)
-      CALL write_1D_array(1, "dx", dx)
     endif
 
     if(ndim.ge.2) then
@@ -263,9 +267,6 @@ contains
         write(mf_dy) dy
         close(mf_y)
         close(mf_dy)
-        ! now save as hdf5
-        CALL write_1D_array(1, "ygrid", y)
-        CALL write_1D_array(1, "dy", dy)
       endif
 
       if(ndim.ge.3) then
@@ -277,9 +278,6 @@ contains
           write(mf_dz) dz
           close(mf_z)
           close(mf_dz)
-          ! now save as hdf5
-          CALL write_1D_array(1, "zgrid", z)
-          CALL write_1D_array(1, "dz", dz)
         endif
       endif
     endif
@@ -378,7 +376,7 @@ contains
 
     ! save values for magnetohydrodyanmical simulation results
     if(flag_mhd.eq.1) then
-      do i=1,nvar_m
+      do i=1,nvar_m-1
         call save1param(U_m(:,:,:,i),tno//trim(file_m(i)),1)
         call write_3D_array(trim(file_m(i)), U_m(:,:,:,i))
       enddo
