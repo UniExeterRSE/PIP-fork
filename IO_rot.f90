@@ -146,7 +146,7 @@ contains
   end subroutine create_parallel_hdf5
 
   subroutine create_dataspaces()
-    integer(kind=8) :: dims_1D(1)     ! 1D dims array for spatial coordinates
+    integer(HSIZE_T) :: dims_1D(1)     ! 1D dims array for spatial coordinates
     integer :: i
 
     ! iterate over grid coordinates (X, Y, Z)
@@ -154,9 +154,9 @@ contains
       proc_dims(i) = ig(i) - 2*margin(i)
       setting_dims(i) = proc_dims(i)*mpi_siz(i)
       ! Create 1D dataspaces for spatial coordinates
-      dims_1D = (/setting_dims(i)/)
+      dims_1D(1) = setting_dims(i)
       CALL h5screate_simple_f(1, dims_1D, filespace_id(i), hdf5_error)
-      dims_1D = (/proc_dims(i)/)
+      dims_1D(1) = proc_dims(i)
       CALL h5screate_simple_f(1, dims_1D, memspace_id(i), hdf5_error)
     end do
 
@@ -187,7 +187,8 @@ contains
     double precision, dimension(*) :: data_array
 
     ! Creating dataset
-    CALL h5dcreate_f(file_id, trim(varname), H5T_NATIVE_DOUBLE, filespace_id(n), dset_id, hdf5_error)
+    CALL h5dcreate_f(file_id, trim(varname), H5T_NATIVE_DOUBLE, filespace_id(n), &
+                     dset_id,  hdf5_error)
     ! Select hyperslab in the file.
     CALL h5dget_space_f(dset_id, filespace_id(n), hdf5_error)
     offset(1) = mpi_pos(n)*proc_dims(n)
@@ -216,13 +217,13 @@ contains
     if(per /= 0) varname = varname(1:per-1)
 
     ! Creating dataset
-    CALL h5dcreate_f(file_id, trim(varname), H5T_NATIVE_DOUBLE, filespace_id(4), dset_id, &
-                     hdf5_error)
+    CALL h5dcreate_f(file_id, trim(varname), H5T_NATIVE_DOUBLE, filespace_id(4), &
+                     dset_id, hdf5_error)
     ! Select hyperslab in the file.
     CALL h5dget_space_f(dset_id, filespace_id(4), hdf5_error)
     do n = 1,3
       offset(n) = mpi_pos(n)*proc_dims(n)
-      end_idx(n) = setting_dims(n)+margin(n)
+      end_idx(n) = proc_dims(n)+margin(n)
     end do
     CALL h5sselect_hyperslab_f(filespace_id(4), H5S_SELECT_SET_F, offset, proc_dims, hdf5_error)
     ! write data to file
