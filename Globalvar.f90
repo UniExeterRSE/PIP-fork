@@ -85,8 +85,9 @@ module globalvar
 ! for parallel HDF5 output
   integer(HID_T), save :: file_id, plist_id
   integer(HID_T), save :: filespace_id(4), memspace_id(4)
+  integer(HID_T), save :: start_stop(3,2)
   integer :: hdf5_error
-  integer(HSIZE_T) :: setting_dims(3), proc_dims(3)
+  integer(HSIZE_T) :: setting_dims(3), proc_dims(3), hdf5_offset(3)
 
 !for limit
   double precision,save :: ro_lim,pr_lim

@@ -17,7 +17,7 @@ module io_rot
        ac_sav, xi_sav, ion_sav, rec_sav, col_sav, gr_sav, vs_sav, heat_sav, et_sav, ps_sav,&
        Nexcite,&
        file_id, plist_id, hdf5_error, filespace_id, memspace_id,&
-       setting_dims, proc_dims
+       setting_dims, proc_dims, start_stop, hdf5_offset, neighbor
   use mpi_rot,only:end_mpi
   use IOT_rot,only:initialize_IOT,get_next_output
   use Util_rot,only:get_word,get_value_integer
@@ -147,12 +147,29 @@ contains
 
   subroutine create_dataspaces()
     integer(HSIZE_T) :: dims_1D(1)     ! 1D dims array for spatial coordinates
+    integer(HSIZE_T) :: proc_block
     integer :: i
 
     ! iterate over grid coordinates (X, Y, Z)
     do i=1,3
-      proc_dims(i) = ig(i) - 2*margin(i)
-      setting_dims(i) = proc_dims(i)*mpi_siz(i)
+      proc_block = ig(i) - 2*margin(i)
+      ! Define local process start index & global offset
+      if(neighbor(2*i-1).eq.-1 .or. mpi_pos(i).eq.0) then
+        start_stop(i,1) = 1
+        hdf5_offset(i) = 0
+      else
+        start_stop(i,1) = 1 + margin(i)
+        hdf5_offset(i) = margin(i) + proc_block*mpi_pos(i)
+      end if
+      ! Define local process stop index
+      if(neighbor(2*i).eq.-1 .or. mpi_pos(i).eq.(mpi_siz(i)-1)) then
+        start_stop(i,2) = proc_block + 2*margin(i)
+      else
+        start_stop(i,2) = proc_block + margin(i)
+      end if
+
+      proc_dims(i) = start_stop(i,2) - start_stop(i,1) + 1
+      setting_dims(i) = proc_block*mpi_siz(i) + 2*margin(i)
       ! Create 1D dataspaces for spatial coordinates
       dims_1D(1) = setting_dims(i)
       CALL h5screate_simple_f(1, dims_1D, filespace_id(i), hdf5_error)
@@ -191,12 +208,12 @@ contains
                      dset_id,  hdf5_error)
     ! Select hyperslab in the file.
     CALL h5dget_space_f(dset_id, filespace_id(n), hdf5_error)
-    offset(1) = mpi_pos(n)*proc_dims(n)
+    offset(1) = hdf5_offset(n)
     dims_1D(1) = proc_dims(n)
     CALL h5sselect_hyperslab_f(filespace_id(n), H5S_SELECT_SET_F, offset, dims_1D, hdf5_error)
     ! write data to file
     dims_1D(1) = setting_dims(n)
-    CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data_array(1+margin(n):proc_dims(n)+margin(n)), &
+    CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data_array(start_stop(n,1):start_stop(n,2)), &
                     dims_1D, hdf5_error, &
                     file_space_id = filespace_id(n), mem_space_id = memspace_id(n), &
                     xfer_prp = plist_id)
@@ -206,8 +223,6 @@ contains
 
   subroutine write_3D_array(varname, data_array)
     integer(HID_T) :: dset_id         ! Dataset identifier
-    integer(HSSIZE_T) :: offset(3)    ! grid location offsets for each MPI process
-    integer(HSSIZE_T) :: end_idx(3)
     integer :: per, n
     character(*) :: varname
     double precision :: data_array(ix,jx,kx)
@@ -221,14 +236,11 @@ contains
                      dset_id, hdf5_error)
     ! Select hyperslab in the file.
     CALL h5dget_space_f(dset_id, filespace_id(4), hdf5_error)
-    do n = 1,3
-      offset(n) = mpi_pos(n)*proc_dims(n)
-      end_idx(n) = proc_dims(n)+margin(n)
-    end do
-    CALL h5sselect_hyperslab_f(filespace_id(4), H5S_SELECT_SET_F, offset, proc_dims, hdf5_error)
+    CALL h5sselect_hyperslab_f(filespace_id(4), H5S_SELECT_SET_F, hdf5_offset, proc_dims, hdf5_error)
     ! write data to file
     CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, &
-                    data_array(1+margin(1):end_idx(1), 1+margin(2):end_idx(2), 1+margin(3):end_idx(3)), &
+                    data_array(start_stop(1,1):start_stop(1,2), start_stop(2,1):start_stop(2,2), &
+                               start_stop(3,1):start_stop(3,2)), &
                     setting_dims, hdf5_error, &
                     file_space_id = filespace_id(4), mem_space_id = memspace_id(4), &
                     xfer_prp = plist_id)
@@ -377,9 +389,11 @@ contains
 
     ! save values for magnetohydrodyanmical simulation results
     if(flag_mhd.eq.1) then
-      do i=1,nvar_m-1
-        call save1param(U_m(:,:,:,i),tno//trim(file_m(i)),1)
-        call write_3D_array(trim(file_m(i)), U_m(:,:,:,i))
+      do i=1,nvar_m
+        if((i.lt.9) .or. (flag_divb.eq.1 .and. ps_sav .eq.0)) then
+          call save1param(U_m(:,:,:,i),tno//trim(file_m(i)),1)
+          call write_3D_array(trim(file_m(i)), U_m(:,:,:,i))
+        end if
       enddo
       ! include resistivity results
       if(flag_resi.ge.2) then
@@ -430,11 +444,6 @@ contains
         call save1param(U_h(:,:,:,i),tno//trim(file_h(i)),1)
         call write_3D_array(trim(file_h(i)), U_h(:,:,:,i))
       enddo
-    endif
-    ! Save divergence of B-field values (currently used in testing)
-    if(flag_divb.eq.1 .and. flag_mhd.eq.1 .and. ps_sav .eq.0) then
-      call save1param(U_m(:,:,:,9),tno//trim(file_m(9)),1)
-      call write_3D_array(trim(file_m(9)), U_m(:,:,:,9))
     endif
   end subroutine save_varfiles
 
