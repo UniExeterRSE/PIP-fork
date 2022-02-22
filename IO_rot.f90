@@ -746,61 +746,62 @@ contains
 
   subroutine reread_variables
     integer nvar,i
-    character*4 step_char
-    write(step_char,"(i4.4)")flag_restart
-    nvar=ix
-    if(ndim.ge.2)nvar=nvar*jx
-    if(ndim.ge.3)nvar=nvar*kx
+    !character*4 step_char
+    !write(step_char,"(i4.4)") flag_restart
+    !nvar=ix
+    !if(ndim.ge.2)nvar=nvar*jx
+    !if(ndim.ge.3)nvar=nvar*kx
 
     call set_initial_out
-    if(flag_mhd.eq.1) then
-       do i=1,nvar_m
-          call dacget(mf_m(i,1),trim(indir)//step_char//trim(file_m(i))//cno,nvar, &
-               U_m(:,:,:,mf_m(i,2)))
-       enddo
-    endif
 
-    if(flag_pip.eq.1.or.flag_mhd.eq.0) then
-       do i=1,nvar_h
-          call dacget(mf_h(i,1),trim(indir)//step_char//trim(file_h(i))//cno,nvar,&
-               U_h(:,:,:,mf_h(i,2)))
-       enddo
+    if(flag_mhd.eq.1) then
+      do i=1,nvar_m
+        !call dacget(mf_m(i,1),trim(indir)//step_char//trim(file_m(i))//cno,nvar, &
+        !     U_m(:,:,:,mf_m(i,2)))
+        CALL read_3D_array(trim(file_m(i)), U_m(:,:,:,mf_m(i,2)))
+      enddo
     endif
-!    call reset_out
+    if(flag_pip.eq.1.or.flag_mhd.eq.0) then
+      do i=1,nvar_h
+        !call dacget(mf_h(i,1),trim(indir)//step_char//trim(file_h(i))//cno,nvar,&
+        !     U_h(:,:,:,mf_h(i,2)))
+        CALL read_3D_array(trim(file_h(i)), U_h(:,:,:,mf_h(i,2)))
+      enddo
+    endif
 
     if(flag_resi.ge.1) then
-       call dacget(11,trim(indir)//step_char//'et.dac.'//cno,nvar,eta(:,:,:))
+      !call dacget(11,trim(indir)//step_char//'et.dac.'//cno,nvar,eta(:,:,:))
+      CALL read_3D_array('et', eta(:,:,:))
     endif
-
 
     if(flag_pip.eq.1.and.flag_col.ge.1) then
-       call dacget(11,trim(indir)//step_char//'ac.dac.'//cno,nvar,ac(:,:,:))
+      !call dacget(11,trim(indir)//step_char//'ac.dac.'//cno,nvar,ac(:,:,:))
+      CALL read_3D_array('ac', ac(:,:,:))
     endif
-
     if(flag_pip.eq.1.and.flag_ir.ge.1) then
-       call dacget(11,trim(indir)//step_char//'ion.dac.'//cno,nvar,gm_ion(:,:,:))
-       call dacget(11,trim(indir)//step_char//'rec.dac.'//cno,nvar,gm_rec(:,:,:))
-	if (flag_ir_type .eq.0) then
-		allocate(arb_heat(ix,jx,kx))
-		call dacget(11,trim(indir)//step_char//'aheat.dac.'//cno,nvar,arb_heat(:,:,:))
-	endif
-!       print *,"GM_ION",maxval(gm_ion),minval(gm_ion)
-!       print *,"GM_REC",maxval(gm_rec),minval(gm_rec)
+      !call dacget(11,trim(indir)//step_char//'ion.dac.'//cno,nvar,gm_ion(:,:,:))
+      !call dacget(11,trim(indir)//step_char//'rec.dac.'//cno,nvar,gm_rec(:,:,:))
+      CALL read_3D_array('ion', gm_ion(:,:,:))
+      CALL read_3D_array('rec', gm_rec(:,:,:))
+
+      if (flag_ir_type .eq.0) then
+        allocate(arb_heat(ix,jx,kx))
+        !call dacget(11,trim(indir)//step_char//'aheat.dac.'//cno,nvar,arb_heat(:,:,:))
+        CALL read_3D_array('aheat', arb_heat(:,:,:))
+      endif
     endif
 
     if(flag_grav.ge.1) then
-!      do i=1,3
-          call dacget(11,trim(indir)//step_char//'gr.dac.'//cno,nvar*3,gra,3)
-!       enddo
+      !call dacget(11,trim(indir)//step_char//'gr.dac.'//cno,nvar*3,gra,3)
+      CALL read_3D_array('gr', gra)
     endif
 
     !! read time (by Tak)
     call get_time(mf_t,trim(indir)//'t.dac.0000',flag_restart,time)
     if (flag_mpi.eq.0 .or. my_rank.eq.0) print *, 'Read time: ',time
     if(my_rank.eq.0) then
-       call copy_time(mf_t,trim(indir)//'t.dac.0000',trim(outdir)//'t.dac.0000',flag_restart+1)
+      call copy_time(mf_t,trim(indir)//'t.dac.0000',trim(outdir)//'t.dac.0000',flag_restart+1)
     endif
-
   end subroutine reread_variables
 
 
