@@ -636,6 +636,56 @@ contains
     CALL h5screate_simple_f(3, proc_dims, memspace_id(4), hdf5_error)
   end subroutine open_restart_hdf5
 
+  subroutine read_1D_array(n, varname, data_out)
+    integer(HID_T) :: dset_id, dataspace_id     ! dataset and file-dataspace IDs
+    integer(HSIZE_T) :: dimsFile(1), dimsMem(1)
+    integer(HSSIZE_T) :: offsetFile(1)
+    integer :: n      ! coordinate index (1:x, 2:y, 3:z)
+    character(*) :: varname
+    double precision, dimension(1) :: data_out(proc_dims(n))
+
+    CALL h5dopen_f(file_id, varname, dset_id, hdf5_error)
+    ! Get file dataspace
+    dimsMem(1) = proc_dims(n)
+    offsetFile(1) = hdf5_offset(n)
+    CALL h5dget_space_f(dset_id, dataspace_id, hdf5_error)
+    CALL h5sselect_hyperslab_f(dataspace_id, H5S_SELECT_SET_F, offsetFile, dimsMem, hdf5_error)
+    ! read file
+    dimsFile(1) = setting_dims(n)
+    CALL h5dread_f(dset_id, H5T_NATIVE_DOUBLE, data_out, dimsFile, hdf5_error, &
+                   mem_space_id=memspace_id(n), file_space_id=dataspace_id)
+    ! close connections
+    CALL h5sclose_f(dataspace_id, hdf5_error)
+    CALL h5dclose_f(dset_id, hdf5_error)
+  end subroutine read_1D_array
+
+  subroutine read_3D_array(varname, data_out)
+    integer(HID_T) :: dset_id, dataspace_id     ! dataset and file-dataspace IDs
+    integer(HSIZE_T) :: dimsFile(3), dimsMem(3)
+    integer(HSSIZE_T) :: offsetFile(3)
+    integer :: per
+    character(*) :: varname
+    double precision, dimension(3) :: data_out(ix,jx,kx)
+
+    ! strip off '.dac.' suffix on certain variable names
+    per = index(varname, '.')
+    if(per /= 0) varname = varname(1:per-1)
+
+    CALL h5dopen_f(file_id, varname, dset_id, hdf5_error)
+    ! Get file dataspace
+    dimsMem(1:3) = proc_dims(1:3)
+    offsetFile(1:3) = hdf5_offset(1:3)
+    CALL h5dget_space_f(dset_id, dataspace_id, hdf5_error)
+    CALL h5sselect_hyperslab_f(dataspace_id, H5S_SELECT_SET_F, offsetFile, dimsMem, hdf5_error)
+    ! read file
+    dimsFile(1:3) = setting_dims(1:3)
+    CALL h5dread_f(dset_id, H5T_NATIVE_DOUBLE, data_out, dimsFile, hdf5_error, &
+                   mem_space_id=memspace_id(4), file_space_id=dataspace_id)
+    ! close connections
+    CALL h5sclose_f(dataspace_id, hdf5_error)
+    CALL h5dclose_f(dset_id, hdf5_error)
+  end subroutine read_3D_array
+
   subroutine close_restart_hdf5()
     integer :: i
 
@@ -646,6 +696,8 @@ contains
     ! Close the file.
     CALL h5fclose_f(file_id, hdf5_error)
   end subroutine close_restart_hdf5
+
+
 
   subroutine reconf_grid_space
 
@@ -666,21 +718,30 @@ contains
   end subroutine reconf_grid_space
 
   subroutine reread_coordinate
-    character*4 tmp_id
-    write(tmp_id,"(i4.4)")mpi_pos(1)
+    !character*4 tmp_id
+    !write(tmp_id,"(i4.4)")mpi_pos(1)
 
-    call dacget(51,trim(indir) // 'x.dac.'//tmp_id,ix,x)
-    call dacget(51,trim(indir) // 'dx.dac.'//tmp_id,ix,dx)
-    if(ndim.ge.2)then
-       write(tmp_id,"(i4.4)")mpi_pos(2)
-       call dacget(51,trim(indir) // 'y.dac.'//tmp_id,jx,y)
-       call dacget(51,trim(indir) // 'dy.dac.'//tmp_id,jx,dy)
-       if(ndim.ge.3)then
-          write(tmp_id,"(i4.4)")mpi_pos(3)
-          call dacget(51,trim(indir) // 'z.dac.'//tmp_id,kx,z)
-          call dacget(51,trim(indir) // 'dz.dac.'//tmp_id,kx,dz)
-       endif
-    endif
+    ! Save the coordinate grids into the parallel HDF5 file
+    CALL read_1D_array(1, "xgrid", x)
+    CALL read_1D_array(2, "ygrid", y)
+    CALL read_1D_array(3, "zgrid", z)
+    ! Also include the grid spacings
+    CALL read_1D_array(1, "dx", dx)
+    CALL read_1D_array(2, "dy", dy)
+    CALL read_1D_array(3, "dz", dz)
+
+    !call dacget(51,trim(indir) // 'x.dac.'//tmp_id,ix,x)
+    !call dacget(51,trim(indir) // 'dx.dac.'//tmp_id,ix,dx)
+    !if(ndim.ge.2)then
+    !   write(tmp_id,"(i4.4)")mpi_pos(2)
+    !   !call dacget(51,trim(indir) // 'y.dac.'//tmp_id,jx,y)
+    !   call dacget(51,trim(indir) // 'dy.dac.'//tmp_id,jx,dy)
+    !   if(ndim.ge.3)then
+    !      write(tmp_id,"(i4.4)")mpi_pos(3)
+    !      call dacget(51,trim(indir) // 'z.dac.'//tmp_id,kx,z)
+    !      call dacget(51,trim(indir) // 'dz.dac.'//tmp_id,kx,dz)
+    !   endif
+    !endif
   end subroutine reread_coordinate
 
   subroutine reread_variables
