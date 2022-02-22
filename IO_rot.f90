@@ -261,39 +261,39 @@ contains
     CALL write_1D_array(2, "dy", dy)
     CALL write_1D_array(3, "dz", dz)
 
-    if(flag_mpi.eq.0 .or.(mpi_pos(2).eq.0.and.mpi_pos(3).eq.0)) then
-      write(tmp_id,"(i4.4)")mpi_pos(1)
-      call dacdef1d(mf_x,trim(outdir) // 'x.dac.'//tmp_id,6,ix)
-      write(mf_x) x
-      call dacdef1d(mf_dx,trim(outdir) // 'dx.dac.'//tmp_id,6,ix)
-      write(mf_dx) dx
-      close(mf_x)
-      close(mf_dx)
-    endif
+    !if(flag_mpi.eq.0 .or.(mpi_pos(2).eq.0.and.mpi_pos(3).eq.0)) then
+    !  write(tmp_id,"(i4.4)")mpi_pos(1)
+    !  call dacdef1d(mf_x,trim(outdir) // 'x.dac.'//tmp_id,6,ix)
+    !  write(mf_x) x
+    !  call dacdef1d(mf_dx,trim(outdir) // 'dx.dac.'//tmp_id,6,ix)
+    !  write(mf_dx) dx
+    !  close(mf_x)
+    !  close(mf_dx)
+    !endif
 
-    if(ndim.ge.2) then
-      if(flag_mpi.eq.0 .or.(mpi_pos(1).eq.0.and.mpi_pos(3).eq.0)) then
-        write(tmp_id,"(i4.4)")mpi_pos(2)
-        call dacdef1d(mf_y,trim(outdir) // 'y.dac.'//tmp_id,6,jx)
-        write(mf_y) y
-        call dacdef1d(mf_dy,trim(outdir) // 'dy.dac.'//tmp_id,6,jx)
-        write(mf_dy) dy
-        close(mf_y)
-        close(mf_dy)
-      endif
+    !if(ndim.ge.2) then
+    !  if(flag_mpi.eq.0 .or.(mpi_pos(1).eq.0.and.mpi_pos(3).eq.0)) then
+    !    write(tmp_id,"(i4.4)")mpi_pos(2)
+    !    call dacdef1d(mf_y,trim(outdir) // 'y.dac.'//tmp_id,6,jx)
+    !    write(mf_y) y
+    !    call dacdef1d(mf_dy,trim(outdir) // 'dy.dac.'//tmp_id,6,jx)
+    !    write(mf_dy) dy
+    !    close(mf_y)
+    !    close(mf_dy)
+    !  endif
 
-      if(ndim.ge.3) then
-        if(flag_mpi.eq.0 .or.(mpi_pos(1).eq.0.and.mpi_pos(2).eq.0)) then
-          write(tmp_id,"(i4.4)")mpi_pos(3)
-          call dacdef1d(mf_z,trim(outdir) // 'z.dac.'//tmp_id,6,kx)
-          write(mf_z) z
-          call dacdef1d(mf_dz,trim(outdir) // 'dz.dac.'//tmp_id,6,kx)
-          write(mf_dz) dz
-          close(mf_z)
-          close(mf_dz)
-        endif
-      endif
-    endif
+    !  if(ndim.ge.3) then
+    !    if(flag_mpi.eq.0 .or.(mpi_pos(1).eq.0.and.mpi_pos(2).eq.0)) then
+    !      write(tmp_id,"(i4.4)")mpi_pos(3)
+    !      call dacdef1d(mf_z,trim(outdir) // 'z.dac.'//tmp_id,6,kx)
+    !      write(mf_z) z
+    !      call dacdef1d(mf_dz,trim(outdir) // 'dz.dac.'//tmp_id,6,kx)
+    !      write(mf_dz) dz
+    !      close(mf_z)
+    !      close(mf_dz)
+    !    endif
+    !  endif
+    !endif
 
   end subroutine save_coordinates
 
@@ -304,47 +304,47 @@ contains
 
     if(flag_pip.eq.1.or.flag_amb.eq.1) then
       if(ac_sav.eq.0) then
-        call save1param(ac,tno//'ac.dac.',1)
+        !call save1param(ac,tno//'ac.dac.',1)
         call write_3D_array("ac", ac)
       endif
       if(xi_sav.eq.0) then
-        call save1param(xi_n,tno//'xi.dac.',1)
+        !call save1param(xi_n,tno//'xi.dac.',1)
         call write_3D_array("xi", xi_n)
       endif
     endif
     ! include type=1 ionization and recombination results
     if(flag_pip.eq.1.and.flag_ir.eq.1) then
       if(ion_sav.eq.0) then
-        call save1param(Gm_ion,tno//'ion.dac.',1)
+        !call save1param(Gm_ion,tno//'ion.dac.',1)
         call write_3D_array("ion", Gm_ion)
       endif
       if(rec_sav.eq.0) then
-        call save1param(Gm_rec,tno//'rec.dac.',1)
+        !call save1param(Gm_rec,tno//'rec.dac.',1)
         call write_3D_array("rec", Gm_rec)
       endif
     endif
     ! include resistivity results
     if(flag_mhd.eq.1.and.flag_resi.eq.1 .and. et_sav.eq.0) then
-      call save1param(eta,tno//'et.dac.',1)
+      !call save1param(eta,tno//'et.dac.',1)
       call write_3D_array("et", eta)
     endif
 
     if(flag_col.eq.1 .and. col_sav.eq.0) then
-      call save1param(ac,tno//'col.dac.',1)
+      !call save1param(ac,tno//'col.dac.',1)
       call write_3D_array("col", ac)
     endif
     if(flag_grav.eq.1 .and. gr_sav.eq.0) then
-      call save1param(gra,tno//'gr.dac.',3)
+      !call save1param(gra,tno//'gr.dac.',3)
       call write_3D_array("gr", gra)
     endif
     if(flag_visc.eq.1 .and. vs_sav.eq.0) then
-      call save1param(mu,tno//'vs.dac.',1)
+      !call save1param(mu,tno//'vs.dac.',1)
       call write_3D_array("vs", mu)
     endif
 
     if(flag_pip.eq.1.and.flag_ir_type.eq.0.and.flag_IR.ne.0) then
       if(heat_sav.eq.0) then
-        call save1param(arb_heat,tno//'aheat.dac.',1)
+        !call save1param(arb_heat,tno//'aheat.dac.',1)
         call write_3D_array("aheat", arb_heat)
       endif
     endif
@@ -379,8 +379,7 @@ contains
 
 
   subroutine save_varfiles(n_out)
-    integer n_out
-    integer i
+    integer n_out, i
     character(8) :: Nexc_name        ! concat name of Nexcite# variable
 
     if(n_out.ne.0) call def_varfiles(1)
@@ -391,36 +390,36 @@ contains
     if(flag_mhd.eq.1) then
       do i=1,nvar_m
         if((i.lt.9) .or. (flag_divb.eq.1 .and. ps_sav .eq.0)) then
-          call save1param(U_m(:,:,:,i),tno//trim(file_m(i)),1)
+          !call save1param(U_m(:,:,:,i),tno//trim(file_m(i)),1)
           call write_3D_array(trim(file_m(i)), U_m(:,:,:,i))
         end if
       enddo
       ! include resistivity results
       if(flag_resi.ge.2) then
         if(et_sav.eq.0) then
-          call save1param(eta,tno//"et.dac.",1)
+          !call save1param(eta,tno//"et.dac.",1)
           call write_3D_array("et", eta)
         endif
       endif
       ! include type>=1 ionization and recombination results
       if(flag_ir.ge.1) then
         if(ion_sav.eq.0) then
-          call save1param(Gm_ion,tno//'ion.dac.',1)
+          !call save1param(Gm_ion,tno//'ion.dac.',1)
           call write_3D_array("ion", Gm_ion)
         endif
         if(rec_sav.eq.0) then
-          call save1param(Gm_rec,tno//'rec.dac.',1)
+          !call save1param(Gm_rec,tno//'rec.dac.',1)
           call write_3D_array("rec", Gm_rec)
         endif
       endif
       ! include type=4 ionization and recombination results
       if(flag_ir.eq.4) then
-        call save1param(Nexcite(:,:,:,1),tno//'nexcite1.dac.',1)
-        call save1param(Nexcite(:,:,:,2),tno//'nexcite2.dac.',1)
-        call save1param(Nexcite(:,:,:,3),tno//'nexcite3.dac.',1)
-        call save1param(Nexcite(:,:,:,4),tno//'nexcite4.dac.',1)
-        call save1param(Nexcite(:,:,:,5),tno//'nexcite5.dac.',1)
-        call save1param(Nexcite(:,:,:,6),tno//'nexcite6.dac.',1)
+        !call save1param(Nexcite(:,:,:,1),tno//'nexcite1.dac.',1)
+        !call save1param(Nexcite(:,:,:,2),tno//'nexcite2.dac.',1)
+        !call save1param(Nexcite(:,:,:,3),tno//'nexcite3.dac.',1)
+        !call save1param(Nexcite(:,:,:,4),tno//'nexcite4.dac.',1)
+        !call save1param(Nexcite(:,:,:,5),tno//'nexcite5.dac.',1)
+        !call save1param(Nexcite(:,:,:,6),tno//'nexcite6.dac.',1)
         ! analogous save commands for HDF5 files
         do i=1,6
           write(Nexc_name, '(a, i0)') 'nexcite', i
@@ -429,9 +428,9 @@ contains
       endif
       ! include viscosity results
       if((flag_visc.ge.1).and.(vs_sav.eq.0)) then
-        call save1param(visc(:,:,:,1),tno//"viscx.dac.",1)
-        call save1param(visc(:,:,:,2),tno//"viscy.dac.",1)
-        call save1param(visc(:,:,:,3),tno//"viscz.dac.",1)
+        !call save1param(visc(:,:,:,1),tno//"viscx.dac.",1)
+        !call save1param(visc(:,:,:,2),tno//"viscy.dac.",1)
+        !call save1param(visc(:,:,:,3),tno//"viscz.dac.",1)
         ! analogous save commands for HDF5 files
         call write_3D_array("viscx", visc(:,:,:,1))
         call write_3D_array("viscy", visc(:,:,:,2))
@@ -441,7 +440,7 @@ contains
 
     if(flag_pip.eq.1 .or.flag_mhd.eq.0) then
       do i=1,nvar_h
-        call save1param(U_h(:,:,:,i),tno//trim(file_h(i)),1)
+        !call save1param(U_h(:,:,:,i),tno//trim(file_h(i)),1)
         call write_3D_array(trim(file_h(i)), U_h(:,:,:,i))
       enddo
     endif
