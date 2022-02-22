@@ -26,7 +26,6 @@ module io_rot
   include "mpif.h"
   integer ios
   integer,allocatable,save::mf_m(:,:),mf_h(:,:)
-!  integer,save::mf_m(8,2),mf_h(5,2)
   character*15,allocatable::file_m(:),file_h(:)
   character*4 tno
   integer, parameter :: mf_t=10 &
@@ -248,10 +247,7 @@ contains
     CALL h5dclose_f(dset_id, hdf5_error)
   end subroutine write_3D_array
 
-
   subroutine save_coordinates()
-    character*4 tmp_id
-
     ! Save the coordinate grids into the parallel HDF5 file
     CALL write_1D_array(1, "xgrid", x)
     CALL write_1D_array(2, "ygrid", y)
@@ -260,41 +256,6 @@ contains
     CALL write_1D_array(1, "dx", dx)
     CALL write_1D_array(2, "dy", dy)
     CALL write_1D_array(3, "dz", dz)
-
-    !if(flag_mpi.eq.0 .or.(mpi_pos(2).eq.0.and.mpi_pos(3).eq.0)) then
-    !  write(tmp_id,"(i4.4)")mpi_pos(1)
-    !  call dacdef1d(mf_x,trim(outdir) // 'x.dac.'//tmp_id,6,ix)
-    !  write(mf_x) x
-    !  call dacdef1d(mf_dx,trim(outdir) // 'dx.dac.'//tmp_id,6,ix)
-    !  write(mf_dx) dx
-    !  close(mf_x)
-    !  close(mf_dx)
-    !endif
-
-    !if(ndim.ge.2) then
-    !  if(flag_mpi.eq.0 .or.(mpi_pos(1).eq.0.and.mpi_pos(3).eq.0)) then
-    !    write(tmp_id,"(i4.4)")mpi_pos(2)
-    !    call dacdef1d(mf_y,trim(outdir) // 'y.dac.'//tmp_id,6,jx)
-    !    write(mf_y) y
-    !    call dacdef1d(mf_dy,trim(outdir) // 'dy.dac.'//tmp_id,6,jx)
-    !    write(mf_dy) dy
-    !    close(mf_y)
-    !    close(mf_dy)
-    !  endif
-
-    !  if(ndim.ge.3) then
-    !    if(flag_mpi.eq.0 .or.(mpi_pos(1).eq.0.and.mpi_pos(2).eq.0)) then
-    !      write(tmp_id,"(i4.4)")mpi_pos(3)
-    !      call dacdef1d(mf_z,trim(outdir) // 'z.dac.'//tmp_id,6,kx)
-    !      write(mf_z) z
-    !      call dacdef1d(mf_dz,trim(outdir) // 'dz.dac.'//tmp_id,6,kx)
-    !      write(mf_dz) dz
-    !      close(mf_z)
-    !      close(mf_dz)
-    !    endif
-    !  endif
-    !endif
-
   end subroutine save_coordinates
 
   subroutine def_varfiles(append)
@@ -304,47 +265,38 @@ contains
 
     if(flag_pip.eq.1.or.flag_amb.eq.1) then
       if(ac_sav.eq.0) then
-        !call save1param(ac,tno//'ac.dac.',1)
         call write_3D_array("ac", ac)
       endif
       if(xi_sav.eq.0) then
-        !call save1param(xi_n,tno//'xi.dac.',1)
         call write_3D_array("xi", xi_n)
       endif
     endif
     ! include type=1 ionization and recombination results
     if(flag_pip.eq.1.and.flag_ir.eq.1) then
       if(ion_sav.eq.0) then
-        !call save1param(Gm_ion,tno//'ion.dac.',1)
         call write_3D_array("ion", Gm_ion)
       endif
       if(rec_sav.eq.0) then
-        !call save1param(Gm_rec,tno//'rec.dac.',1)
         call write_3D_array("rec", Gm_rec)
       endif
     endif
     ! include resistivity results
     if(flag_mhd.eq.1.and.flag_resi.eq.1 .and. et_sav.eq.0) then
-      !call save1param(eta,tno//'et.dac.',1)
       call write_3D_array("et", eta)
     endif
 
     if(flag_col.eq.1 .and. col_sav.eq.0) then
-      !call save1param(ac,tno//'col.dac.',1)
       call write_3D_array("col", ac)
     endif
     if(flag_grav.eq.1 .and. gr_sav.eq.0) then
-      !call save1param(gra,tno//'gr.dac.',3)
       call write_3D_array("gr", gra)
     endif
     if(flag_visc.eq.1 .and. vs_sav.eq.0) then
-      !call save1param(mu,tno//'vs.dac.',1)
       call write_3D_array("vs", mu)
     endif
 
     if(flag_pip.eq.1.and.flag_ir_type.eq.0.and.flag_IR.ne.0) then
       if(heat_sav.eq.0) then
-        !call save1param(arb_heat,tno//'aheat.dac.',1)
         call write_3D_array("aheat", arb_heat)
       endif
     endif
@@ -361,7 +313,6 @@ contains
     if(flag_mpi.eq.0 .or.my_rank.eq.0) then
        print *,"END of simulation total loop ",nt
        open(99,file=trim(outdir) // "/config.txt",status="old",form="formatted",position="append")
-!       open(99,file=trim(outdir) // "/config.txt",status="replace",form="formatted")
        write(99,*)"nout:",nout
        close(99)
 
@@ -390,37 +341,26 @@ contains
     if(flag_mhd.eq.1) then
       do i=1,nvar_m
         if((i.lt.9) .or. (flag_divb.eq.1 .and. ps_sav .eq.0)) then
-          !call save1param(U_m(:,:,:,i),tno//trim(file_m(i)),1)
           call write_3D_array(trim(file_m(i)), U_m(:,:,:,i))
         end if
       enddo
       ! include resistivity results
       if(flag_resi.ge.2) then
         if(et_sav.eq.0) then
-          !call save1param(eta,tno//"et.dac.",1)
           call write_3D_array("et", eta)
         endif
       endif
       ! include type>=1 ionization and recombination results
       if(flag_ir.ge.1) then
         if(ion_sav.eq.0) then
-          !call save1param(Gm_ion,tno//'ion.dac.',1)
           call write_3D_array("ion", Gm_ion)
         endif
         if(rec_sav.eq.0) then
-          !call save1param(Gm_rec,tno//'rec.dac.',1)
           call write_3D_array("rec", Gm_rec)
         endif
       endif
       ! include type=4 ionization and recombination results
       if(flag_ir.eq.4) then
-        !call save1param(Nexcite(:,:,:,1),tno//'nexcite1.dac.',1)
-        !call save1param(Nexcite(:,:,:,2),tno//'nexcite2.dac.',1)
-        !call save1param(Nexcite(:,:,:,3),tno//'nexcite3.dac.',1)
-        !call save1param(Nexcite(:,:,:,4),tno//'nexcite4.dac.',1)
-        !call save1param(Nexcite(:,:,:,5),tno//'nexcite5.dac.',1)
-        !call save1param(Nexcite(:,:,:,6),tno//'nexcite6.dac.',1)
-        ! analogous save commands for HDF5 files
         do i=1,6
           write(Nexc_name, '(a, i0)') 'nexcite', i
           call write_3D_array(Nexc_name, Nexcite(:,:,:,i))
@@ -428,39 +368,17 @@ contains
       endif
       ! include viscosity results
       if((flag_visc.ge.1).and.(vs_sav.eq.0)) then
-        !call save1param(visc(:,:,:,1),tno//"viscx.dac.",1)
-        !call save1param(visc(:,:,:,2),tno//"viscy.dac.",1)
-        !call save1param(visc(:,:,:,3),tno//"viscz.dac.",1)
-        ! analogous save commands for HDF5 files
         call write_3D_array("viscx", visc(:,:,:,1))
         call write_3D_array("viscy", visc(:,:,:,2))
         call write_3D_array("viscz", visc(:,:,:,3))
       endif
     endif
-
     if(flag_pip.eq.1 .or.flag_mhd.eq.0) then
       do i=1,nvar_h
-        !call save1param(U_h(:,:,:,i),tno//trim(file_h(i)),1)
         call write_3D_array(trim(file_h(i)), U_h(:,:,:,i))
       enddo
     endif
   end subroutine save_varfiles
-
-
-  subroutine save1param(q,name,nvar)
-    integer,intent(in)::nvar
-    double precision, intent(in) :: q(ix,jx,kx,nvar)
-    character(*), intent(in) :: name
-    integer, parameter :: mf_q = 999
-    integer nn
-
-    call dacdef3s(mf_q,trim(outdir) // '/' // name // cno,6,0)
-    do nn=1,nvar
-       write(mf_q) q(:,:,:,nn)
-    enddo
-!print*,mf_q,name,q(1,1,1,:)
-    close(mf_q)
-  end subroutine save1param
 
   subroutine set_initial_out
     integer i
@@ -540,63 +458,46 @@ contains
     integer tmp,out_tmp
     character*200 line
     character*15 key
-!    open(99,file=trim(indir)//"result.txt",status="old",form="formatted"
 
     !Modification restart setting 2015/08/27 NN======================
-
     open(restart_unit,file=trim(indir)//"config.txt",status="old",form="formatted")
     do
-       read(restart_unit,*,end=111)line
-       if(trim(line)=="ENDSETTING") exit
+      read(restart_unit,*,end=111)line
+      if(trim(line)=="ENDSETTING") exit
     enddo
 111 continue
     read(restart_unit,*)flag_mhd,flag_pip
     read(restart_unit,*)nvar_h,nvar_m
     read(restart_unit,*)ix,jx,kx
     read(restart_unit,*)margin
-!    read(99,*)tmp
-!    read(99,*)tmp
-!    tmp=tmp+1
     read(restart_unit,*)gm
     read(restart_unit,*,end=777)flag_bnd
-!    read(restart_unit,*)flag_damp,damp_time
     if(flag_mpi.eq.1) then
-       read(restart_unit,*,end=777)mpi_siz
+      read(restart_unit,*,end=777)mpi_siz
     endif
     if(flag_restart.eq.0) then
-       key="nout"
-       do
-          read(restart_unit,"(A)",end=888)line
-          call get_value_integer(line,key,out_tmp)
-       enddo
+      key="nout"
+      do
+        read(restart_unit,"(A)",end=888)line
+        call get_value_integer(line,key,out_tmp)
+      enddo
 888    continue
-       flag_restart=out_tmp-1
+      flag_restart=out_tmp-1
     endif
-!    if(flag_restart.eq.-1) then
-!       key="nout"
-!       do
-!          read(restart_unit,"(A)",end=889)line
-!          call get_value_integer(line,key,out_tmp)
-!       enddo
-!889    continue
-!       flag_restart=out_tmp-1
-!    endif
 777 continue
-
-
     close(restart_unit)
 
     !=========================Modification end
-
-
     if (flag_mpi.eq.0 .or. my_rank.eq.0) then
        print *,"Now reading data from [",trim(indir),"] ..."
        print *,"start step is : ",flag_restart
     endif
+    ! open file and initialize local-memory dataspaces
     CALL open_restart_hdf5
-    call reread_coordinate
-    call reread_variables
-
+    ! load spatial grid coordinates
+    CALL reread_coordinate
+    ! load simulation variables
+    CALL reread_variables
     CALL close_restart_hdf5
     if (flag_mpi.eq.0 .or. my_rank.eq.0) print *,"reading Finish."
 
@@ -606,7 +507,6 @@ contains
 
     start_time=MPI_Wtime()
     tend=tend+time
-!    if (flag_mpi.eq.0 .or. my_rank.eq.1) print *,"time",start_time,tend,dtout
     call initialize_IOT(dtout,tend,output_type)
   end subroutine restart
 
@@ -697,9 +597,7 @@ contains
   end subroutine close_restart_hdf5
 
 
-
   subroutine reconf_grid_space
-
     dxc(2:ix-1)=0.5*(x(3:ix)-x(1:ix-2))
     dxc(1)=dxc(2) ; dxc(ix)=dxc(ix-1)
     if(ndim.ge.2) then
@@ -717,9 +615,6 @@ contains
   end subroutine reconf_grid_space
 
   subroutine reread_coordinate
-    !character*4 tmp_id
-    !write(tmp_id,"(i4.4)")mpi_pos(1)
-
     ! Save the coordinate grids into the parallel HDF5 file
     CALL read_1D_array(1, "xgrid", x)
     CALL read_1D_array(2, "ygrid", y)
@@ -728,70 +623,42 @@ contains
     CALL read_1D_array(1, "dx", dx)
     CALL read_1D_array(2, "dy", dy)
     CALL read_1D_array(3, "dz", dz)
-
-    !call dacget(51,trim(indir) // 'x.dac.'//tmp_id,ix,x)
-    !call dacget(51,trim(indir) // 'dx.dac.'//tmp_id,ix,dx)
-    !if(ndim.ge.2)then
-    !   write(tmp_id,"(i4.4)")mpi_pos(2)
-    !   !call dacget(51,trim(indir) // 'y.dac.'//tmp_id,jx,y)
-    !   call dacget(51,trim(indir) // 'dy.dac.'//tmp_id,jx,dy)
-    !   if(ndim.ge.3)then
-    !      write(tmp_id,"(i4.4)")mpi_pos(3)
-    !      call dacget(51,trim(indir) // 'z.dac.'//tmp_id,kx,z)
-    !      call dacget(51,trim(indir) // 'dz.dac.'//tmp_id,kx,dz)
-    !   endif
-    !endif
   end subroutine reread_coordinate
 
   subroutine reread_variables
-    integer nvar,i
-    !character*4 step_char
-    !write(step_char,"(i4.4)") flag_restart
-    !nvar=ix
-    !if(ndim.ge.2)nvar=nvar*jx
-    !if(ndim.ge.3)nvar=nvar*kx
+    integer i
 
     call set_initial_out
 
     if(flag_mhd.eq.1) then
       do i=1,nvar_m
-        !call dacget(mf_m(i,1),trim(indir)//step_char//trim(file_m(i))//cno,nvar, &
-        !     U_m(:,:,:,mf_m(i,2)))
         CALL read_3D_array(trim(file_m(i)), U_m(:,:,:,mf_m(i,2)))
       enddo
     endif
     if(flag_pip.eq.1.or.flag_mhd.eq.0) then
       do i=1,nvar_h
-        !call dacget(mf_h(i,1),trim(indir)//step_char//trim(file_h(i))//cno,nvar,&
-        !     U_h(:,:,:,mf_h(i,2)))
         CALL read_3D_array(trim(file_h(i)), U_h(:,:,:,mf_h(i,2)))
       enddo
     endif
 
     if(flag_resi.ge.1) then
-      !call dacget(11,trim(indir)//step_char//'et.dac.'//cno,nvar,eta(:,:,:))
       CALL read_3D_array('et', eta(:,:,:))
     endif
 
     if(flag_pip.eq.1.and.flag_col.ge.1) then
-      !call dacget(11,trim(indir)//step_char//'ac.dac.'//cno,nvar,ac(:,:,:))
       CALL read_3D_array('ac', ac(:,:,:))
     endif
     if(flag_pip.eq.1.and.flag_ir.ge.1) then
-      !call dacget(11,trim(indir)//step_char//'ion.dac.'//cno,nvar,gm_ion(:,:,:))
-      !call dacget(11,trim(indir)//step_char//'rec.dac.'//cno,nvar,gm_rec(:,:,:))
       CALL read_3D_array('ion', gm_ion(:,:,:))
       CALL read_3D_array('rec', gm_rec(:,:,:))
 
       if (flag_ir_type .eq.0) then
         allocate(arb_heat(ix,jx,kx))
-        !call dacget(11,trim(indir)//step_char//'aheat.dac.'//cno,nvar,arb_heat(:,:,:))
         CALL read_3D_array('aheat', arb_heat(:,:,:))
       endif
     endif
 
     if(flag_grav.ge.1) then
-      !call dacget(11,trim(indir)//step_char//'gr.dac.'//cno,nvar*3,gra,3)
       CALL read_3D_array('gr', gra)
     endif
 
@@ -802,38 +669,6 @@ contains
       call copy_time(mf_t,trim(indir)//'t.dac.0000',trim(outdir)//'t.dac.0000',flag_restart+1)
     endif
   end subroutine reread_variables
-
-
-!  subroutine dacget(idf,file,nvar,restart,var)
-  subroutine dacget(idf,file,nvar,var,read_num)
-    integer,intent(in)::idf
-    integer,intent(in)::nvar
-    character*(*),intent(in)::file
-    double precision,intent(out)::var(nvar)
-    integer,optional::read_num
-    integer tmp,i
-    integer n_read,read_size
-    if(present(read_num)) then
-       n_read=read_num
-    else
-       n_read=1
-    endif
-    read_size=nvar/n_read
-
-    open(idf,file=file,form="unformatted",status="old")
-    !remove .dac. header----------------------------
-    do i=1,5
-       read(idf)tmp
-    enddo
-    i=tmp
-    !-----------------------------------------------
-!    if(present(restart)) then
-    do i=1,n_read
-       read(idf)var(1+(i-1)*read_size:read_size*i)
-    enddo
-    close(idf)
-
-  end subroutine dacget
 
   subroutine copy_time(idf,in_file,out_file,start_step)
     integer,intent(in)::idf,start_step
@@ -881,18 +716,6 @@ contains
     close(idf)
   end subroutine get_time
 
-
-  subroutine dacdef1d(idf,file,mtype,in)
-    integer,intent(in)::idf,mtype,in
-    character*(*) file
-    open(idf,file=file,form='unformatted')
-    write(idf)1
-    write(idf)0
-    write(idf)mtype
-    write(idf)1
-    write(idf)in
-  end subroutine dacdef1d
-
   subroutine dacdef0s(idf,file,mtype,append)
     integer,intent(in)::idf,mtype,append
     character*(*) file
@@ -907,24 +730,6 @@ contains
        open(idf,file=file,form='unformatted',position='append')
     endif
   end subroutine dacdef0s
-
-  subroutine dacdef3s(idf,file,mtype,append)
-    integer,intent(in)::idf,mtype,append
-    character*(*) file
-    if(append.ne.1) then
-       open(idf,file=file,form='unformatted')
-       write(idf)1
-       write(idf)0
-       write(idf)mtype
-       write(idf)4
-       write(idf)ix,jx,kx,-1
-    else
-
-       open(idf,file=file,form='unformatted',position='append')
-    endif
-  end subroutine dacdef3s
-
-
 
   subroutine stop_sim
     !----------------------------------------------------------------------|
