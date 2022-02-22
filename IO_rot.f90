@@ -589,16 +589,17 @@ contains
 
     !=========================Modification end
 
-    call reread_coordinate
+
     if (flag_mpi.eq.0 .or. my_rank.eq.0) then
        print *,"Now reading data from [",trim(indir),"] ..."
        print *,"start step is : ",flag_restart
     endif
+    CALL open_restart_hdf5
+    call reread_coordinate
     call reread_variables
 
-
+    CALL close_restart_hdf5
     if (flag_mpi.eq.0 .or. my_rank.eq.0) print *,"reading Finish."
-!    if (flag_mpi.eq.0 .or. my_rank.eq.1) print *,"dtout=",dtout
 
     call reconf_grid_space
 
@@ -609,6 +610,42 @@ contains
 !    if (flag_mpi.eq.0 .or. my_rank.eq.1) print *,"time",start_time,tend,dtout
     call initialize_IOT(dtout,tend,output_type)
   end subroutine restart
+
+  subroutine open_restart_hdf5()
+    character(40) :: file_path
+    character*4 step_char
+    integer(HSIZE_T) :: dimsMem(1)
+    integer :: i
+
+    CALL h5open_f(hdf5_error)
+    ! open HDF5 file for requested time-step
+    write(step_char, "(i4.4)") flag_restart
+    file_path = trim(indir) // 't' // step_char // '.h5'
+    CALL h5fopen_f(trim(file_path), H5F_ACC_RDONLY_F, file_id, hdf5_error)
+
+    ! iterate over grid coordinates (X, Y, Z)
+    do i=1,3
+      proc_dims(i) = ig(i)
+      setting_dims(i) = (ig(i) - 2*margin(i))*mpi_siz(i) + 2*margin(i)
+      hdf5_offset(i) = (ig(i) - 2*margin(i))*mpi_pos(i)
+      ! Set 1D memory dataspace
+      dimsMem(1) = proc_dims(i)
+      CALL h5screate_simple_f(1, dimsMem, memspace_id(i), hdf5_error)
+    end do
+    ! Set 3D memory dataspace
+    CALL h5screate_simple_f(3, proc_dims, memspace_id(4), hdf5_error)
+  end subroutine open_restart_hdf5
+
+  subroutine close_restart_hdf5()
+    integer :: i
+
+    ! Close the memory dataspaces
+    do i=1,4
+      CALL h5sclose_f(memspace_id(i), hdf5_error)
+    end do
+    ! Close the file.
+    CALL h5fclose_f(file_id, hdf5_error)
+  end subroutine close_restart_hdf5
 
   subroutine reconf_grid_space
 
