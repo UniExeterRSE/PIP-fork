@@ -198,7 +198,7 @@ contains
   subroutine write_1D_array(n, varname, data_array)
     integer(HID_T) :: dset_id         ! Dataset identifier
     integer(HSSIZE_T) :: offset(1)    ! grid location offset for each MPI process
-    integer(HSIZE_T) :: dims_1D(1)
+    integer(HSIZE_T) :: dimsFile(1), dimsMem(1)
     integer :: n                      ! coordinate index (1:x, 2:y, 3:z)
     character(*) :: varname
     double precision, dimension(*) :: data_array
@@ -209,14 +209,14 @@ contains
     ! Select hyperslab in the file.
     CALL h5dget_space_f(dset_id, filespace_id(n), hdf5_error)
     offset(1) = hdf5_offset(n)
-    dims_1D(1) = proc_dims(n)
-    CALL h5sselect_hyperslab_f(filespace_id(n), H5S_SELECT_SET_F, offset, dims_1D, hdf5_error)
+    dimsMem(1) = proc_dims(n)
+    CALL h5sselect_hyperslab_f(filespace_id(n), H5S_SELECT_SET_F, offset, dimsMem, hdf5_error)
     ! write data to file
-    dims_1D(1) = setting_dims(n)
+    dimsFile(1) = setting_dims(n)
     CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data_array(start_stop(n,1):start_stop(n,2)), &
-                    dims_1D, hdf5_error, &
-                    file_space_id = filespace_id(n), mem_space_id = memspace_id(n), &
-                    xfer_prp = plist_id)
+                    dimsFile, hdf5_error, &
+                    file_space_id=filespace_id(n), mem_space_id=memspace_id(n), &
+                    xfer_prp=plist_id)
     ! Closing dataset connections
     CALL h5dclose_f(dset_id, hdf5_error)
   end subroutine write_1D_array
@@ -242,8 +242,8 @@ contains
                     data_array(start_stop(1,1):start_stop(1,2), start_stop(2,1):start_stop(2,2), &
                                start_stop(3,1):start_stop(3,2)), &
                     setting_dims, hdf5_error, &
-                    file_space_id = filespace_id(4), mem_space_id = memspace_id(4), &
-                    xfer_prp = plist_id)
+                    file_space_id=filespace_id(4), mem_space_id=memspace_id(4), &
+                    xfer_prp=plist_id)
     ! Closing dataset connections
     CALL h5dclose_f(dset_id, hdf5_error)
   end subroutine write_3D_array
