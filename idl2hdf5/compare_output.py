@@ -3,14 +3,16 @@ import numpy as np
 import pdb
 
 # Looping over time steps
-for i in np.arange(3):
-    fn_dac = "testdata_3D.{0:04d}.h5".format(i)
+for i in np.arange(11):
+    fn_ref = f"../Data/run4/t{format(i, '04d')}.h5"
+    #fn_ref = f"testdata_3D_OZ.{format(i, '04d')}.h5"
     # define hdf5 filename of file to check
-    fn_h5 = f"../Data/t{format(i, '04d')}.h5"
+    fn_new = f"../Data/run3/t{format(i, '04d')}.h5"
 
+    print(f"time step #{i}")
     # For each reference file (contains multiple variables)
-    with h5py.File(fn_dac, "r") as ref:
-        with h5py.File(fn_h5, "r") as new:
+    with h5py.File(fn_ref, "r") as ref:
+        with h5py.File(fn_new, "r") as new:
             for param in ref:
                 ref_data = np.array(ref[param])
                 new_data = np.array(new[param])
@@ -18,5 +20,5 @@ for i in np.arange(3):
                 # Compare element by element
                 comp = np.isclose(ref_data, new_data)
                 if not comp.all():
-                    print(f"{param} parameter array in time step #{i} has {comp.size - comp.sum()} mismatches")
+                    print(f"\t{param} parameter array has {comp.size - comp.sum()} mismatches")
                     pdb.set_trace()
