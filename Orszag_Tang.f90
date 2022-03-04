@@ -18,7 +18,7 @@ subroutine Orszag_Tang
   double precision f_n,f_p,f_p_n,f_p_p,start(3),end(3)
   double precision Atwood,ro_l,ro_u,vx_l,vx_u,w_lay,v0,b0
   double precision A(jx,3),b(jx),P_y(jx)
-  integer j
+  integer i,j,k
   !set ionization fraction-----------------
   if(flag_pip.eq.0) then
      f_n=1.0d0
@@ -78,16 +78,18 @@ subroutine Orszag_Tang
   endif
 
   if (ndim .eq. 3) then
-    vx_h=v0*spread(spread(-2.0*sin(2.0*pi*y),1,ix),3,kx)
-    vx_m=v0*spread(spread(-2.0*sin(2.0*pi*y),1,ix),3,kx)
-    vy_h=v0*spread(spread(2.0*sin(2.0*pi*x),2,jx),3,kx)
-    vy_m=v0*spread(spread(2.0*sin(2.0*pi*x),2,jx),3,kx)
-    vz_h=0.0
-    vz_m=0.0
+    do k=1,kx;do j=1,jx;do i=1,ix
+      vx_h(i,j,k)=v0*(-2.0*sin(2.0*pi*y(j)))
+      vx_m(i,j,k)=v0*(-2.0*sin(2.0*pi*y(j)))
+      vy_h(i,j,k)=v0*2.0*sin(2.0*pi*x(i))
+      vy_m(i,j,k)=v0*2.0*sin(2.0*pi*x(i))
+      vz_h(i,j,k)=0.0
+      vz_m=0.0
 
-    b_x=b0*spread(spread(-2.0*sin(4.0*pi*y)+sin(2.0*pi*z),1,ix),3,kx)
-    b_y=b0*spread(spread(2.0*sin(2.0*pi*x)+sin(2.0*pi*z),2,jx),3,kx)
-    b_z=b0*spread(spread(sin(2.0*pi*x)+sin(2.0*pi*z),2,jx),3,kx)
+      b_x(i,j,k)=b0*(-2.0*sin(4.0*pi*y(j))+sin(2.0*pi*z(k)))
+      b_y(i,j,k)=b0*(2.0*sin(2.0*pi*x(i))+sin(2.0*pi*z(k)))
+      b_z(i,j,k)=b0*(sin(2.0*pi*x(i))+sin(2.0*pi*z(k)))
+    enddo;enddo;enddo
   endif
 
 
