@@ -1,0 +1,7 @@
+# stuff for git NOT to track
+Data/
+*.[oa]
+*.mod
+*.out
+*.err
+*.h5

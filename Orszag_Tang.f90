@@ -2,7 +2,7 @@ subroutine Orszag_Tang
   use parameters,only:pi
   use globalvar,only:ix,jx,kx,U_h,U_m,flag_bnd,beta,flag_b_stg,dtout,&
        flag_mhd,flag_mpi,my_rank,flag_pip,gm,beta,tend,&
-       x,y,z,dx,dy,dz,n_fraction,gra,flag_grav,scl_height,margin
+       x,y,z,dx,dy,dz,n_fraction,gra,flag_grav,scl_height,margin,ndim
   use scheme_rot,only:pv2cq_mhd,pv2cq_hd
   use model_rot, only:set_coordinate,setcq
   use matrix_rot,only:inverse_tridiagonal
@@ -10,7 +10,7 @@ subroutine Orszag_Tang
   double precision :: ro_h(1:ix,1:jx,1:kx),ro_m(1:ix,1:jx,1:kx)
   double precision :: vx_h(1:ix,1:jx,1:kx),vx_m(1:ix,1:jx,1:kx)
   double precision :: vy_h(1:ix,1:jx,1:kx),vy_m(1:ix,1:jx,1:kx)
-  double precision :: vz_h(1:ix,1:jx,1:kx),vz_m(1:ix,1:jx,1:kx) 
+  double precision :: vz_h(1:ix,1:jx,1:kx),vz_m(1:ix,1:jx,1:kx)
   double precision :: P_h (1:ix,1:jx,1:kx),P_m (1:ix,1:jx,1:kx)
   double precision :: B_x (1:ix,1:jx,1:kx)
   double precision :: B_y (1:ix,1:jx,1:kx)
@@ -18,7 +18,7 @@ subroutine Orszag_Tang
   double precision f_n,f_p,f_p_n,f_p_p,start(3),end(3)
   double precision Atwood,ro_l,ro_u,vx_l,vx_u,w_lay,v0,b0
   double precision A(jx,3),b(jx),P_y(jx)
-  integer j
+  integer i,j,k
   !set ionization fraction-----------------
   if(flag_pip.eq.0) then
      f_n=1.0d0
@@ -27,7 +27,7 @@ subroutine Orszag_Tang
      f_p_p=1.0d0
   else
      f_n=n_fraction
-     f_p=1.0d0-n_fraction     
+     f_p=1.0d0-n_fraction
      f_p_n=f_n/(f_n+2.0d0*f_p)
      f_p_p=2.0d0*f_p/(f_n+2.0d0*f_p)
   endif
@@ -40,7 +40,7 @@ subroutine Orszag_Tang
   start(3)=0.0d0 ;end(3)=1.0d0
   call set_coordinate(start,end)
   !---------------------------------------
-  
+
   !!default boundary condition----------------------
   if (flag_bnd(1) .eq.-1) flag_bnd(1)=1
   if (flag_bnd(2) .eq.-1) flag_bnd(2)=1
@@ -52,10 +52,10 @@ subroutine Orszag_Tang
 
   !!!========================================================
   !density of lower fluid is unity
-  
+
   flag_grav=0
   v0=1.0d0
-  b0=1.0/sqrt(4.0*pi)  
+  b0=1.0/sqrt(4.0*pi)
 !  b0=1.0d0
 
   ro_h(:,:,:)=25.0d0/(36.0*pi)*f_n
@@ -63,18 +63,34 @@ subroutine Orszag_Tang
   P_h(:,:,:)=5.0/(12.0*pi)*f_p_n
   P_m(:,:,:)=5.0/(12.0*pi)*f_p_p
 
-  vx_h=v0*spread(spread(-sin(2.0*pi*y),1,ix),3,kx)
-  vx_m=v0*spread(spread(-sin(2.0*pi*y),1,ix),3,kx)
-  vy_h=v0*spread(spread(sin(2.0*pi*x),2,jx),3,kx)
-  vy_m=v0*spread(spread(sin(2.0*pi*x),2,jx),3,kx)
-  
-  b_x=b0*spread(spread(-sin(2.0*pi*y),1,ix),3,kx)
-  b_y=b0*spread(spread(sin(4.0*pi*x),2,jx),3,kx)
-  b_z=0.0d0
-  vz_h=0.0
-  vz_m=0.0
- 
 
+  if (ndim .eq. 2) then
+    vx_h=v0*spread(spread(-sin(2.0*pi*y),1,ix),3,kx)
+    vx_m=v0*spread(spread(-sin(2.0*pi*y),1,ix),3,kx)
+    vy_h=v0*spread(spread(sin(2.0*pi*x),2,jx),3,kx)
+    vy_m=v0*spread(spread(sin(2.0*pi*x),2,jx),3,kx)
+
+    b_x=b0*spread(spread(-sin(2.0*pi*y),1,ix),3,kx)
+    b_y=b0*spread(spread(sin(4.0*pi*x),2,jx),3,kx)
+    b_z=0.0d0
+    vz_h=0.0
+    vz_m=0.0
+  endif
+
+  if (ndim .eq. 3) then
+    do k=1,kx;do j=1,jx;do i=1,ix
+      vx_h(i,j,k)=v0*(-2.0*sin(2.0*pi*y(j)))
+      vx_m(i,j,k)=v0*(-2.0*sin(2.0*pi*y(j)))
+      vy_h(i,j,k)=v0*2.0*sin(2.0*pi*x(i))
+      vy_m(i,j,k)=v0*2.0*sin(2.0*pi*x(i))
+      vz_h(i,j,k)=0.0
+      vz_m=0.0
+
+      b_x(i,j,k)=b0*(-2.0*sin(4.0*pi*y(j))+sin(2.0*pi*z(k)))
+      b_y(i,j,k)=b0*(2.0*sin(2.0*pi*x(i))+sin(2.0*pi*z(k)))
+      b_z(i,j,k)=b0*(sin(2.0*pi*x(i))+sin(2.0*pi*z(k)))
+    enddo;enddo;enddo
+  endif
 
 
   !!!========================================================
