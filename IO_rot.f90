@@ -151,7 +151,7 @@ contains
 
     ! iterate over grid coordinates (X, Y, Z)
     do i=1,3
-      proc_block = ig(i) - 2*margin(i)
+      proc_block = (setting_dims(i)-2*margin(i))/mpi_siz(i)
       ! Define local process start index & global offset
       if(neighbor(2*i-1).eq.-1 .or. mpi_pos(i).eq.0) then
         start_stop(i,1) = 1
@@ -162,13 +162,12 @@ contains
       end if
       ! Define local process stop index
       if(neighbor(2*i).eq.-1 .or. mpi_pos(i).eq.(mpi_siz(i)-1)) then
-        start_stop(i,2) = proc_block + 2*margin(i)
+        start_stop(i,2) = ig(i)
       else
-        start_stop(i,2) = proc_block + margin(i)
+        start_stop(i,2) = ig(i) - margin(i)
       end if
 
       proc_dims(i) = start_stop(i,2) - start_stop(i,1) + 1
-      setting_dims(i) = proc_block*mpi_siz(i) + 2*margin(i)
       ! Create 1D dataspaces for spatial coordinates
       dims_1D(1) = setting_dims(i)
       CALL h5screate_simple_f(1, dims_1D, filespace_id(i), hdf5_error)
@@ -514,6 +513,7 @@ contains
     character(40) :: file_path
     character*4 step_char
     integer(HSIZE_T) :: dimsMem(1)
+    integer(HSIZE_T) :: proc_block
     integer :: i
 
     CALL h5open_f(hdf5_error)
@@ -525,8 +525,9 @@ contains
     ! iterate over grid coordinates (X, Y, Z)
     do i=1,3
       proc_dims(i) = ig(i)
-      setting_dims(i) = (ig(i) - 2*margin(i))*mpi_siz(i) + 2*margin(i)
-      hdf5_offset(i) = (ig(i) - 2*margin(i))*mpi_pos(i)
+
+      proc_block = (setting_dims(i)-2*margin(i))/mpi_siz(i)
+      hdf5_offset(i) = proc_block*mpi_pos(i)
       ! Set 1D memory dataspace
       dimsMem(1) = proc_dims(i)
       CALL h5screate_simple_f(1, dimsMem, memspace_id(i), hdf5_error)

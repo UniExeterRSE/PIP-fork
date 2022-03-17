@@ -353,38 +353,37 @@ subroutine get_parameters
       print*,'STOP'
    endif
 
-   
+
    !! Default setting is flag_hc_test = 0
    flag_hc_test = 0
-   
+
 !   ! copy the setting file (setting.txt) to the input and output directories
    if(flag_mpi.eq.0 .or. my_rank.eq.0) then
 !      call system('cp setting.txt '//trim(adjustl(indir)))
       call system('cp setting.txt '//trim(adjustl(outdir)))
    endif
-   
+
  end subroutine get_parameters
 
 
  !Allocate the array sizes
  subroutine allocate_vars
-   ig(1)=ix ; ig(2)=jx ; ig(3)=kx   
    if(flag_mpi.eq.0 .or.my_rank.eq.0) print *,"total grid :",ix,jx,kx
    allocate(x(ix),dx(ix),y(jx),dy(jx),z(kx),dz(kx),dsc(max(ix,jx,kx),3),&
         dxc(ix),dyc(jx),dzc(kx))
    if(ndim.le.2) dz(1)=1.0d10
    if(ndim.le.1) dy(1)=1.0d10
-   
-   allocate(u_h(ix,jx,kx,nvar_h),u_m(ix,jx,kx,nvar_m))   
+
+   allocate(u_h(ix,jx,kx,nvar_h),u_m(ix,jx,kx,nvar_m))
    call initialize_xin(flag_amb,flag_col)
    call initialize_collisional(flag_col)
    call initialize_IR(flag_IR)
    call initialize_resistivity(flag_resi)
-   call initialize_HC(flag_heat)   
-   call initialize_gravity(flag_grav)   
-   call initialize_visc(flag_visc)         
+   call initialize_HC(flag_heat)
+   call initialize_gravity(flag_grav)
+   call initialize_visc(flag_visc)
  end subroutine allocate_vars
- 
+
  subroutine set_coordinate(start,end)
    double precision,intent(inout)::start(3),end(3)
    integer i,j,k,n,zeros(3)
@@ -401,7 +400,7 @@ subroutine get_parameters
       endif
    endif
 
-   if(flag_mpi.eq.1) then 
+   if(flag_mpi.eq.1) then
       do n=1,3
          length=end(n)-start(n)
          ds=1.0d0/mpi_siz(n)
@@ -410,8 +409,8 @@ subroutine get_parameters
       enddo
    endif
 
-   !!set grid width   
-   dr(1)=(end(1)-start(1))/(ix-2*margin(1)) 
+   !!set grid width
+   dr(1)=(end(1)-start(1))/(ix-2*margin(1))
    dr(2)=(end(2)-start(2))/(jx-2*margin(2))
    dr(3)=(end(3)-start(3))/(kx-2*margin(3))
    dx(:)=dr(1);dy(:)=dr(2);dz(:)=dr(3)
@@ -423,7 +422,7 @@ subroutine get_parameters
    endif
    dxc=dx
    dyc=dy
-   dzc=dz   
+   dzc=dz
    !!set origin
    zeros(:)=margin(:)+1
    x(zeros(1))=start(1)+0.5d0*dr(1)
@@ -435,14 +434,14 @@ subroutine get_parameters
    enddo
    do i=zeros(1)-1,1,-1
       x(i)=x(i+1)-dx(i)
-   enddo   
+   enddo
    do j=zeros(2)+1,jx
       y(j)=y(j-1)+dy(j-1)
    enddo
    do j=zeros(2)-1,1,-1
       y(j)=y(j+1)-dy(j)
    enddo
-   
+
    do k=zeros(3)+1,kx
       z(k)=z(k-1)+dz(k-1)
    enddo
@@ -468,11 +467,11 @@ subroutine get_parameters
          do j=1,margin(2)
             dyc(j)=dyc(2*margin(2)+1-j)
             dyc(jx+1-j)=dxc(jx-2*margin(2)+j)
-         enddo         
+         enddo
       else
          dyc=dy(1)
          dzc=dz(1)
-      endif 
+      endif
    else
    endif
  end subroutine set_dsc
@@ -482,13 +481,13 @@ subroutine get_parameters
    double precision,intent(inout) :: ro_h(1:ix,1:jx,1:kx),ro_m(1:ix,1:jx,1:kx)
    double precision,intent(inout) :: vx_h(1:ix,1:jx,1:kx),vx_m(1:ix,1:jx,1:kx)
    double precision,intent(inout) :: vy_h(1:ix,1:jx,1:kx),vy_m(1:ix,1:jx,1:kx)
-   double precision,intent(inout) :: vz_h(1:ix,1:jx,1:kx),vz_m(1:ix,1:jx,1:kx) 
+   double precision,intent(inout) :: vz_h(1:ix,1:jx,1:kx),vz_m(1:ix,1:jx,1:kx)
    double precision,intent(inout) :: P_h (1:ix,1:jx,1:kx),P_m (1:ix,1:jx,1:kx)
    double precision ,intent(inout):: B_x (1:ix,1:jx,1:kx)
    double precision,intent(inout) :: B_y (1:ix,1:jx,1:kx)
    double precision,intent(inout) :: B_z (1:ix,1:jx,1:kx)
-   
-   if(flag_mhd.eq.1) then      
+
+   if(flag_mhd.eq.1) then
       call pv2cq_mhd(ro_m,vx_m,vy_m,vz_m,p_m,B_x,B_y,B_z,U_m)
       if(flag_pip.eq.1) then
          call pv2cq_hd(ro_h,vx_h,vy_h,vz_h,p_h,U_h)

@@ -1,55 +1,68 @@
 module mpi_rot
   use globalvar,only:total_prc,my_rank,nvar_h,nvar_m,mpi_siz,mpi_pos,margin,&
        ix,jx,kx,ndim,flag_mpi_split,neighbor,U_h,U_m,flag_mhd,flag_pip,&
-       cno,vmpi,flag_mpi,flag_bnd
+       cno,vmpi,flag_mpi,flag_bnd, &
+       setting_dims, ig
   implicit none
   include "mpif.h"
   integer ierr
   integer status(6)
 contains
-  subroutine set_mpi    
+  subroutine set_mpi
+    integer i
+
     !charm for MPI
     call mpi_init(ierr)
     call mpi_comm_size(MPI_COMM_WORLD,total_prc,ierr)
-    call mpi_comm_rank(MPI_COMM_WORLD,my_rank,ierr)   
- 
+    call mpi_comm_rank(MPI_COMM_WORLD,my_rank,ierr)
+
     if(flag_mpi.eq.0 .or.my_rank.eq.0) print *,"total cpu",total_prc
     vmpi=nvar_h+nvar_m
     write(cno,"(i4.4)")my_rank
-!   print *,"TOT",total_prc,my_rank,cno 
-   if(total_prc.eq.1) then
-       mpi_siz(:)=1
-       mpi_pos(:)=0       
+    !   print *,"TOT",total_prc,my_rank,cno
+    if(total_prc.eq.1) then
+      mpi_siz(:)=1
+      mpi_pos(:)=0
     else
-       call set_mpi_pos
+      call set_mpi_pos
     endif
-    ix=(ix-2*margin(1))/mpi_siz(1)+2*margin(1)
-    jx=(jx-2*margin(2))/mpi_siz(2)+2*margin(2)
-    kx=(kx-2*margin(3))/mpi_siz(3)+2*margin(3)    
+
+    ! store full ranges + margins for use in write-IO
+    setting_dims(1:3) = [ix, jx, kx]
+    ! compute grid-points for individual process
+    do i=1,3
+      ig(i) = (setting_dims(i)-2*margin(i))/mpi_siz(i)+2*margin(i)
+      ! Add excess grid-points from uneven splitting to last block along dimension
+      if (mpi_pos(i) .eq. (mpi_siz(i)-1)) then
+        ig(i) = ig(i) + mod(setting_dims(i)-2*margin(i), mpi_siz(i))
+      end if
+    end do
+    ! replace _x range values with those for the process
+    ix=ig(1); jx=ig(2); kx=ig(3)
   end subroutine set_mpi
-    
+
   subroutine set_mpi_pos
     integer n0,tmp!,tmp2,n2,n3
     integer n!ixy,iyz,izx
     if(mpi_siz(1)*mpi_siz(2)*mpi_siz(3).eq.0  &
-         .or. mpi_siz(1)*mpi_siz(2)*mpi_siz(3).ne.total_prc) then    
-       select case(flag_mpi_split)    
+         .or. mpi_siz(1)*mpi_siz(2)*mpi_siz(3).ne.total_prc) then
+       select case(flag_mpi_split)
        !1D domain decomposition
        case(1)
           mpi_siz(1)=total_prc
           mpi_siz(2)=1
-          mpi_siz(3)=1          
+          mpi_siz(3)=1
        !n-dimensional decomposition
        case(2)
           call set_domain_equally(mpi_siz(1),mpi_siz(2),mpi_siz(3),3,total_prc)
-       !adjust 
+       !adjust
        case(3)
           n0=0
           do n=1,3
              if(mpi_siz(n).eq.0) n0=n0+1
           enddo
           select case(n0)
-          case(1)             
+          case(1)
              do n=1,3
                 if(mpi_siz(n).eq.0) mpi_siz(n)=total_prc/ &
                      (mpi_siz(mod(n,3)+1)*mpi_siz(mod(n+1,3)+1))
@@ -62,17 +75,17 @@ contains
           case(3)
              call set_domain_equally(mpi_siz(1),mpi_siz(2),mpi_siz(3), &
                   3,total_prc)
-          end select                    
+          end select
        end select
-    endif    
+    endif
     mpi_pos(1)=mod(my_rank,mpi_siz(1))
     mpi_pos(2)=mod(my_rank/mpi_siz(1),mpi_siz(2))
     mpi_pos(3)=my_rank/(mpi_siz(1)*mpi_siz(2))
 
     if(flag_mpi.eq.1) then
-       if(my_rank.eq.0) print *,"siz",mpi_siz    
+       if(my_rank.eq.0) print *,"siz",mpi_siz
     endif
-   
+
   end subroutine set_mpi_pos
 
   subroutine set_mpi_neighbor
@@ -83,7 +96,7 @@ contains
     neighbor(4)=my_rank+mpi_siz(1)
     neighbor(5)=my_rank-mpi_siz(1)*mpi_siz(2)
     neighbor(6)=my_rank+mpi_siz(1)*mpi_siz(2)
-    
+
     !connect the other side of domain if periodic boundary is set
     !else set neighbor -1 (numerical boundary)
     offsets(1)=1
@@ -105,7 +118,7 @@ contains
           else
              neighbor(nn)=-1
           endif
-       endif       
+       endif
     enddo
     do n=1,3
        if(mpi_siz(n).eq.1) neighbor(2*n-1:2*n)=-1
@@ -117,10 +130,10 @@ contains
     integer n0,nsend,nrecv,ncount
 !    integer xcount,ycount,zcount
     double precision,intent(inout)::U_h(ix,jx,kx,nvar_h),U_m(ix,jx,kx,nvar_m)
-    double precision sendx(margin(1),jx,kx,vmpi),recvx(margin(1),jx,kx,vmpi)   
-    double precision sendy(ix,margin(2),kx,vmpi),recvy(ix,margin(2),kx,vmpi)   
-    double precision sendz(ix,jx,margin(3),vmpi),recvz(ix,jx,margin(3),vmpi)   
-    
+    double precision sendx(margin(1),jx,kx,vmpi),recvx(margin(1),jx,kx,vmpi)
+    double precision sendy(ix,margin(2),kx,vmpi),recvy(ix,margin(2),kx,vmpi)
+    double precision sendz(ix,jx,margin(3),vmpi),recvz(ix,jx,margin(3),vmpi)
+
 !for x-direction
 
     if(mpi_siz(1).gt.1) then
@@ -138,23 +151,23 @@ contains
        ncount=kx*jx*margin(1)*(n0-1)
 
        nsend=neighbor(2)
-       nrecv=neighbor(1)       
+       nrecv=neighbor(1)
        if(nsend.eq.-1) nsend=mpi_proc_null
        if(nrecv.eq.-1) nrecv=mpi_proc_null
- 
+
        call mpi_SendRecv(sendx,ncount,mpi_double_precision,nsend,0, &
-            recvx,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)       
+            recvx,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)
        if(neighbor(1).ne.-1) then
           n0=1
           if(flag_pip.eq.1.or.flag_mhd.eq.0) then
              U_h(1:margin(1),:,:,:)=recvx(:,:,:,n0:n0+nvar_h-1)
              n0=n0+nvar_h
           endif
-         
+
           if(flag_mhd.eq.1) then
              U_m(1:margin(1),:,:,:)=recvx(:,:,:,n0:n0+nvar_m-1)
              n0=n0+nvar_m
-          endif          
+          endif
        endif
        !=============================================================
        !right-boundary of x-direction
@@ -170,7 +183,7 @@ contains
        ncount=kx*jx*margin(1)*(n0-1)
 
        nsend=neighbor(1)
-       nrecv=neighbor(2)       
+       nrecv=neighbor(2)
        if(nsend.eq.-1) nsend=mpi_proc_null
        if(nrecv.eq.-1) nrecv=mpi_proc_null
 
@@ -186,7 +199,7 @@ contains
           if(flag_mhd.eq.1) then
              U_m(ix-margin(1)+1:ix,:,:,:)=recvx(:,:,:,n0:n0+nvar_m-1)
              n0=n0+nvar_m
-          endif          
+          endif
        endif
     endif
 
@@ -207,12 +220,12 @@ contains
        ncount=kx*ix*margin(2)*(n0-1)
 
        nsend=neighbor(4)
-       nrecv=neighbor(3)       
+       nrecv=neighbor(3)
        if(nsend.eq.-1) nsend=mpi_proc_null
        if(nrecv.eq.-1) nrecv=mpi_proc_null
        call mpi_SendRecv(sendy,ncount,mpi_double_precision,nsend,0, &
             recvy,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)
-       
+
        if(neighbor(3).ne.-1) then
           n0=1
           if(flag_pip.eq.1.or.flag_mhd.eq.0) then
@@ -222,7 +235,7 @@ contains
           if(flag_mhd.eq.1) then
              U_m(:,1:margin(2),:,:)=recvy(:,:,:,n0:n0+nvar_m-1)
              n0=n0+nvar_m
-          endif          
+          endif
        endif
 
 
@@ -240,11 +253,11 @@ contains
        ncount=kx*ix*margin(2)*(n0-1)
 
        nsend=neighbor(3)
-       nrecv=neighbor(4)       
+       nrecv=neighbor(4)
        if(nsend.eq.-1) nsend=mpi_proc_null
        if(nrecv.eq.-1) nrecv=mpi_proc_null
        call mpi_SendRecv(sendy,ncount,mpi_double_precision,nsend,0, &
-            recvy,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)       
+            recvy,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)
        if(neighbor(4).ne.-1) then
           n0=1
           if(flag_pip.eq.1.or.flag_mhd.eq.0) then
@@ -254,12 +267,12 @@ contains
           if(flag_mhd.eq.1) then
              U_m(:,jx-margin(2)+1:jx,:,:)=recvy(:,:,:,n0:n0+nvar_m-1)
              n0=n0+nvar_m
-          endif          
+          endif
 
        endif
 
     endif
-    
+
     !for z-direction
     if(mpi_siz(3).gt.1) then
        !=============================================================
@@ -276,11 +289,11 @@ contains
        ncount=jx*ix*margin(3)*(n0-1)
 
        nsend=neighbor(6)
-       nrecv=neighbor(5)       
+       nrecv=neighbor(5)
        if(nsend.eq.-1) nsend=mpi_proc_null
        if(nrecv.eq.-1) nrecv=mpi_proc_null
        call mpi_SendRecv(sendz,ncount,mpi_double_precision,nsend,0, &
-            recvz,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)       
+            recvz,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)
        if(neighbor(5).ne.-1) then
           n0=1
           if(flag_pip.eq.1.or.flag_mhd.eq.0) then
@@ -290,7 +303,7 @@ contains
           if(flag_mhd.eq.1) then
              U_m(:,:,1:margin(3),:)=recvz(:,:,:,n0:n0+nvar_m-1)
              n0=n0+nvar_m
-          endif          
+          endif
        endif
 
        !=============================================================
@@ -307,11 +320,11 @@ contains
        ncount=jx*ix*margin(3)*(n0-1)
 
        nsend=neighbor(5)
-       nrecv=neighbor(6)       
+       nrecv=neighbor(6)
        if(nsend.eq.-1) nsend=mpi_proc_null
        if(nrecv.eq.-1) nrecv=mpi_proc_null
        call mpi_SendRecv(sendz,ncount,mpi_double_precision,nsend,0, &
-            recvz,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)       
+            recvz,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)
        if(neighbor(6).ne.-1) then
           n0=1
           if(flag_pip.eq.1.or.flag_mhd.eq.0) then
@@ -321,7 +334,7 @@ contains
           if(flag_mhd.eq.1) then
              U_m(:,:,kx-margin(3)+1:kx,:)=recvz(:,:,:,n0:n0+nvar_m-1)
              n0=n0+nvar_m
-          endif          
+          endif
        endif
     endif
   end subroutine mpi_bnd
@@ -332,10 +345,10 @@ contains
     integer n0,nsend,nrecv,ncount
 !    integer xcount,ycount,zcount
     double precision,intent(inout)::u1(ix,jx,kx)
-    double precision sendx(margin(1),jx,kx),recvx(margin(1),jx,kx)   
-    double precision sendy(ix,margin(2),kx),recvy(ix,margin(2),kx)   
-    double precision sendz(ix,jx,margin(3)),recvz(ix,jx,margin(3))   
-    
+    double precision sendx(margin(1),jx,kx),recvx(margin(1),jx,kx)
+    double precision sendy(ix,margin(2),kx),recvy(ix,margin(2),kx)
+    double precision sendz(ix,jx,margin(3)),recvz(ix,jx,margin(3))
+
 !for x-direction
 
     if(mpi_siz(1).gt.1) then
@@ -345,12 +358,12 @@ contains
        ncount=kx*jx*margin(1)
 
        nsend=neighbor(2)
-       nrecv=neighbor(1)       
+       nrecv=neighbor(1)
        if(nsend.eq.-1) nsend=mpi_proc_null
        if(nrecv.eq.-1) nrecv=mpi_proc_null
- 
+
        call mpi_SendRecv(sendx,ncount,mpi_double_precision,nsend,0, &
-            recvx,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)       
+            recvx,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)
        if(neighbor(1).ne.-1) then
           n0=1
           u1(1:margin(1),:,:)=recvx(:,:,:)
@@ -361,7 +374,7 @@ contains
        ncount=kx*jx*margin(1)
 
        nsend=neighbor(1)
-       nrecv=neighbor(2)       
+       nrecv=neighbor(2)
        if(nsend.eq.-1) nsend=mpi_proc_null
        if(nrecv.eq.-1) nrecv=mpi_proc_null
 
@@ -382,12 +395,12 @@ contains
        ncount=kx*ix*margin(2)
 
        nsend=neighbor(4)
-       nrecv=neighbor(3)       
+       nrecv=neighbor(3)
        if(nsend.eq.-1) nsend=mpi_proc_null
        if(nrecv.eq.-1) nrecv=mpi_proc_null
        call mpi_SendRecv(sendy,ncount,mpi_double_precision,nsend,0, &
             recvy,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)
-       
+
        if(neighbor(3).ne.-1) then
           u1(:,1:margin(2),:)=recvy(:,:,:)
        endif
@@ -399,17 +412,17 @@ contains
        ncount=kx*ix*margin(2)
 
        nsend=neighbor(3)
-       nrecv=neighbor(4)       
+       nrecv=neighbor(4)
        if(nsend.eq.-1) nsend=mpi_proc_null
        if(nrecv.eq.-1) nrecv=mpi_proc_null
        call mpi_SendRecv(sendy,ncount,mpi_double_precision,nsend,0, &
-            recvy,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)       
+            recvy,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)
        if(neighbor(4).ne.-1) then
           u1(:,jx-margin(2)+1:jx,:)=recvy(:,:,:)
        endif
 
     endif
-    
+
     !for z-direction
     if(mpi_siz(3).gt.1) then
        !=============================================================
@@ -418,11 +431,11 @@ contains
        ncount=jx*ix*margin(3)
 
        nsend=neighbor(6)
-       nrecv=neighbor(5)       
+       nrecv=neighbor(5)
        if(nsend.eq.-1) nsend=mpi_proc_null
        if(nrecv.eq.-1) nrecv=mpi_proc_null
        call mpi_SendRecv(sendz,ncount,mpi_double_precision,nsend,0, &
-            recvz,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)       
+            recvz,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)
        if(neighbor(5).ne.-1) then
           u1(:,:,1:margin(3))=recvz(:,:,:)
        endif
@@ -433,18 +446,18 @@ contains
        ncount=jx*ix*margin(3)
 
        nsend=neighbor(5)
-       nrecv=neighbor(6)       
+       nrecv=neighbor(6)
        if(nsend.eq.-1) nsend=mpi_proc_null
        if(nrecv.eq.-1) nrecv=mpi_proc_null
        call mpi_SendRecv(sendz,ncount,mpi_double_precision,nsend,0, &
-            recvz,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)       
+            recvz,ncount,mpi_double_precision,nrecv,0,mpi_comm_world,status,ierr)
        if(neighbor(6).ne.-1) then
           u1(:,:,kx-margin(3)+1:kx)=recvz(:,:,:)
        endif
     endif
   end subroutine mpi_bnd_onevar
 
-  
+
   subroutine set_domain_equally(mpi1,mpi2,mpi3,ndim,total)
     integer,intent(in)::total,ndim
     integer,intent(inout)::mpi1,mpi2,mpi3
@@ -466,7 +479,7 @@ contains
        mpi2=total_prc/mpi1
     else if(ndim.eq.3) then
        mpi2=2**(n2/ndim)*3**(n3/ndim)
-       mpi3=total_prc/(mpi1*mpi2)               
+       mpi3=total_prc/(mpi1*mpi2)
     endif
   end subroutine set_domain_equally
 
@@ -493,6 +506,6 @@ contains
 
   subroutine my_mpi_barrier
     call MPI_barrier(MPI_COMM_WORLD)
-  end subroutine my_mpi_barrier  
+  end subroutine my_mpi_barrier
 
 end module mpi_rot
